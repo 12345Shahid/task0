@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0A0F">
+
+    <!-- Top Action Bar Area -->
+    <LinearLayout
+        android:id="@+id/header_layout"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:background="#151520"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/back_button"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@android:drawable/ic_menu_revert"
+            android:tint="#FFFFFF" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="JARVIS Chat"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginStart="16dp" />
+
+        <Button
+            android:id="@+id/voice_toggle_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:backgroundTint="#0A2222"
+            android:text="🔊 Voice On"
+            android:textColor="#00E5FF"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            app:cornerRadius="18dp" />
+    </LinearLayout>
+
+    <!-- Chat History -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/chat_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:padding="16dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/header_layout"
+        app:layout_constraintBottom_toTopOf="@id/orb_container" />
+
+    <!-- Voice Orb Container -->
+    <LinearLayout
+        android:id="@+id/orb_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingVertical="10dp"
+        app:layout_constraintBottom_toTopOf="@id/input_container">
+
+        <ImageView
+            android:id="@+id/orb_button"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:background="@drawable/orb_background"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:padding="20dp"
+            android:elevation="10dp" />
+
+        <TextView
+            android:id="@+id/orb_status_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tap to speak"
+            android:textColor="#888899"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp" />
+
+        <Button
+            android:id="@+id/stop_listening_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#441111"
+            android:text="⏹ Stop"
+            android:textColor="#FF4444"
+            android:visibility="gone"
+            app:cornerRadius="18dp" />
+    </LinearLayout>
+
+    <!-- Command Input Box -->
+    <LinearLayout
+        android:id="@+id/input_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="#151520"
+        android:padding="4dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <EditText
+            android:id="@+id/command_input"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:hint="Type a message..."
+            android:textColorHint="#555566"
+            android:textColor="#FFFFFF"
+            android:background="@null"
+            android:paddingStart="16dp"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/send_command_button"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:background="#00000000"
+            android:text="Send"
+            android:textColor="#555566"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

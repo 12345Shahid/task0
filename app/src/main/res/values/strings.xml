@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">RemoteAndroid</string>
+    <string name="app_name">Mindful Tasks</string>
     <string name="main_page_title">@string/app_name</string>
     <string name="settings_page_title">Settings</string>
     <string name="instructions_page_title">Instructions</string>
@@ -12,7 +12,7 @@
     <string name="pauseButton">Pause Service</string>
     <string name="stopButton">Stop Service</string>
 
-    <string name="main_activity">RemoteAndroid</string>
+    <string name="main_activity">Mindful Tasks</string>
     <string name="complete_activity">CompleteActivity</string>
     <string name="follower_activity">FollowerActivity</string>
     <string name="expert_activity">ExpertActivity</string>
@@ -20,6 +20,7 @@
     <string name="bubble_service">BubbleService</string>
     <string name="accessibility_hint">This app uses accessibility service to simulate user interface events. The accessibility permissions screen will now open. Please grant accessibility permissions to the app.</string>
     <string name="overlays_hint">This app uses draw overlays to provide User Interface controls for the app service. The draw overlays screen will now open. Please grant permissions to the app.</string>
+    <string name="write_settings_hint">This app needs permission to modify system settings in order to use Privacy Mode (screen dimming). Please grant Modify System Settings permission.</string>
     <string name="end_service_hint">Are you sure you want to end this service?</string>
 
 

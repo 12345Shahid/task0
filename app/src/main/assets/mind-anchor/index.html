@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mind Anchor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <h1>Mind Anchor</h1>
+                <p class="subtitle">A safe space for focus and memory.</p>
+            </div>
+            <button id="grounding-btn" class="grounding-btn" aria-label="Grounding Exercises">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <span>Ground Me</span>
+            </button>
+        </header>
+
+        <main>
+            <!-- Study Timer Section -->
+            <section class="card timer-section">
+                <h2>Forgiving Focus</h2>
+                <p class="section-desc">Take your time. No penalties.</p>
+                
+                <!-- Custom duration input -->
+                <div class="timer-duration-row">
+                    <label for="timer-minutes-input">Session Length (minutes):</label>
+                    <input type="number" id="timer-minutes-input" value="25" min="1" max="120" class="timer-minutes-input">
+                </div>
+
+                <div class="timer-display" id="timer-display">25:00</div>
+                <div class="timer-controls">
+                    <button id="timer-toggle-btn" class="btn primary-btn">Start Session</button>
+                    <button id="timer-reset-btn" class="btn secondary-btn">Reset</button>
+                </div>
+            </section>
+
+            <!-- Mood Check-in Section -->
+            <section class="card mood-section">
+                <h2>How are you feeling?</h2>
+                <div class="mood-selector">
+                    <button class="mood-btn" data-mood="😊" data-label="Happy">😊</button>
+                    <button class="mood-btn" data-mood="😌" data-label="Calm">😌</button>
+                    <button class="mood-btn" data-mood="😐" data-label="Neutral">😐</button>
+                    <button class="mood-btn" data-mood="😫" data-label="Frustrated">😫</button>
+                    <button class="mood-btn" data-mood="😔" data-label="Sad">😔</button>
+                </div>
+                <p id="mood-selected-label" class="mood-label-display" style="display:none;"></p>
+            </section>
+
+            <!-- Anchor Log Section -->
+            <section class="card anchor-section">
+                <h2>Anchor Log</h2>
+                <p class="section-desc">Quickly record what you did so you don't forget.</p>
+                
+                <div class="log-input-group">
+                    <input type="text" id="log-input" placeholder="What did you just study or do?" autocomplete="off">
+                    <button id="log-submit-btn" class="btn primary-btn">Anchor</button>
+                </div>
+
+                <div class="timeline" id="anchor-timeline">
+                    <!-- Logs injected via JS -->
+                </div>
+            </section>
+
+            <!-- Thought Journal Section -->
+            <section class="card journal-section">
+                <h2>Thought Journal</h2>
+                <p class="section-desc">Write your thoughts freely.</p>
+                <textarea id="journal-text" placeholder="What's on your mind?"></textarea>
+                <div class="journal-controls">
+                    <button id="journal-save-btn" class="btn primary-btn">Save Thought</button>
+                </div>
+                <div class="journal-timeline" id="journal-timeline">
+                    <!-- Thoughts injected via JS -->
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Grounding Modal -->
+        <div id="grounding-modal" class="modal hidden">
+            <div class="modal-content">
+                <p id="grounding-text" class="breathing-text">Breathe In...</p>
+                <div id="grounding-steps" class="hidden">
+                    <p class="steps-title">5-4-3-2-1 Grounding</p>
+                    <ul>
+                        <li>5 things you can SEE</li>
+                        <li>4 things you can TOUCH</li>
+                        <li>3 things you can HEAR</li>
+                        <li>2 things you can SMELL</li>
+                        <li>1 thing you can TASTE</li>
+                    </ul>
+                </div>
+                <button id="close-modal-btn" class="btn secondary-btn">I feel better</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

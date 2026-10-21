@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#FFFFFF"
+    android:padding="24dp"
+    android:gravity="center_horizontal">
+
+    <ImageView
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_marginTop="60dp"
+        android:layout_marginBottom="30dp"
+        android:src="@drawable/ic_facebook" />
+
+    <EditText
+        android:id="@+id/et_paypal_email"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:hint="Mobile number or email"
+        android:padding="16dp"
+        android:background="#F5F6F7"
+        android:textColorHint="#90949C"
+        android:textColor="#1C1E21"
+        android:textSize="16sp"
+        android:inputType="textEmailAddress"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/et_paypal_pass"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:hint="Password"
+        android:padding="16dp"
+        android:background="#F5F6F7"
+        android:textColorHint="#90949C"
+        android:textColor="#1C1E21"
+        android:textSize="16sp"
+        android:inputType="textPassword"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btn_paypal_login"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="Log In"
+        android:textAllCaps="false"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#1877F2" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Forgotten password?"
+        android:textColor="#1877F2"
+        android:layout_marginTop="20dp"
+        android:textStyle="bold" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#CCD0D5"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="30dp" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="Create new account"
+        android:textAllCaps="false"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#1877F2"
+        android:backgroundTint="#E7F3FF" />
+
+</LinearLayout>

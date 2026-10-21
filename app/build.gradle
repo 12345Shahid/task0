@@ -1,30 +1,72 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
 android {
     namespace 'com.rcl.androidstreamcontrol'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.rcl.androidstreamcontrol"
-        minSdk 29
-        targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        minSdk 24
+        targetSdk 34
+        versionCode 165
+        versionName "1.20"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+        }
+    }
+
+    signingConfigs {
+        debug {
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+        release {
+            initWith(signingConfigs.debug)
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
+    // Split APKs by CPU architecture so each device installs only what it needs
+    // (dramatically reduces install size + avoids oversized-APK install failures)
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+            universalApk true
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
     }
     externalNativeBuild {
         cmake {
@@ -61,6 +103,7 @@ dependencies {
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'org.java-websocket:Java-WebSocket:1.5.3'
     implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'androidx.webkit:webkit:1.12.0'
 
     // Coroutines
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1'
@@ -73,11 +116,9 @@ dependencies {
     // Timber
     implementation 'com.jakewharton.timber:timber:5.0.1'
 
-    //webrtc
-    //implementation 'io.github.webrtc-sdk:android:114.5735.01'
-    //implementation "io.getstream:stream-webrtc-android:1.0.2"
-    implementation 'com.dafruits:webrtc:114.0.0'
-
-
+    // Agora RTC SDK for screen sharing
+    implementation("io.agora.rtc:full-sdk:4.6.3")
+    // Agora RTM SDK for receiving remote control gesture events
+    implementation("io.agora.rtm:rtm-sdk:1.5.3")
     implementation 'com.google.dagger:hilt-android:2.46.1'
 }

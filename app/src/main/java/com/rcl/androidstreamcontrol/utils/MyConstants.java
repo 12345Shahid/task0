@@ -7,7 +7,7 @@ public abstract class MyConstants {
     public static final String PEER_CONNECTED = "@@@";
     public static final String PEER_DISCONNECTED = "###";
     public static final String PEER_UNAVAILABLE = "***Peer unavailable";
-    public static final String SERVER_URL = "ws://137.82.56.249:8001/";
+    public static final String SERVER_URL = "wss://c2-1-production.up.railway.app/";
 
     // Video track properties
     public static final String VIDEO_TRACK_ID = "ARDAMSv0";

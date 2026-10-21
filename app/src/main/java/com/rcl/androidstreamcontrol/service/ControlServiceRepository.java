@@ -12,8 +12,6 @@ public class ControlServiceRepository {
     private static final String TAG = "ControlServiceRepository";
     public static final int GESTURE_WILL_CONTINUE = 1;
     public static final int IS_PINCH = 2;
-    public static final String IS_CONTINUED_TAG = "isContinuedFromPrev";
-    public static final String WILL_CONTINUE_TAG = "willContinue";
     public static final String EVENT_BYTES_TAG = "event";
     public static final String IS_PINCH_TAG = "isPinch";
     Context context;
@@ -59,8 +57,6 @@ public class ControlServiceRepository {
         Intent intent = new Intent();
         intent.putExtra(EVENT_BYTES_TAG, eventCoords);
         intent.putExtra(IS_PINCH_TAG, isPinch);
-        intent.putExtra(IS_CONTINUED_TAG, isContinuedFromPrev);
-        intent.putExtra(WILL_CONTINUE_TAG, willContinue);
         //intent.setAction("com.rcl.mirthusandroid.GESTURE_EVENT");
         //context.sendBroadcast(intent);
         gestureService.triggerGesture(intent);

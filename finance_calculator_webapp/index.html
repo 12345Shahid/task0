@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Staking APY & Compound Yield Calculator | YieldMatrix</title>
+  <meta name="description" content="Calculate institutional crypto staking returns, APY vs APR compounding yields, validator rewards, and tax-adjusted income across ETH, SOL, ATOM, AVAX, DOT, and ADA.">
+  <meta name="keywords" content="crypto staking calculator, staking apy, ethereum staking yield, solana staking returns, compound interest crypto, defi yield calculator, pos validator rewards">
+  <meta name="theme-color" content="#00f2fe">
+  <meta name="referrer" content="no-referrer-when-downgrade">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/styles.css">
+  
+  <!-- Structured Financial Application Schema (Instant Ad Network Authority Verification) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "YieldMatrix Crypto Staking Calculator",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "All",
+    "browserRequirements": "Requires JavaScript. Requires HTML5.",
+    "description": "Institutional-grade financial tool for calculating Proof-of-Stake cryptocurrency staking APY, compound returns, and passive income yields.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <!-- ============================================================== -->
+  <!-- AD ZONE: POPUNDER SCRIPT (Paste PopAds / HilltopAds code here) -->
+  <!-- Example: <script type="text/javascript" src="//..."></script> -->
+  <!-- ============================================================== -->
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <div class="container navbar">
+      <a href="/" class="logo">
+        <div class="logo-icon">YM</div>
+        <span>YieldMatrix</span>
+        <span class="badge-pos">DeFi v2.4</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#calculator">Calculator</a></li>
+        <li><a href="#methodology">Methodology</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Ad Slot: Header Leaderboard / Banner -->
+    <div class="ad-slot-leaderboard" id="ad-slot-leaderboard">
+      <!-- ============================================================== -->
+      <!-- AD ZONE: HEADER BANNER (728x90 or Responsive Display Ad)       -->
+      <!-- Paste your Monetag / HilltopAds / Adsterra banner script here  -->
+      <!-- ============================================================== -->
+      <span>Sponsored Financial Insight & Exchange Liquidity Partner Slot</span>
+    </div>
+
+    <!-- Hero Title -->
+    <section class="hero" id="calculator">
+      <h1>Crypto Staking APY & Yield Calculator</h1>
+      <p>Institutional-grade compound interest modeling for Proof-of-Stake validators, liquid staking derivatives (LST), and decentralized yield vaults.</p>
+    </section>
+
+    <!-- Main Calculator Grid -->
+    <div class="calc-grid">
+      <!-- Left Column: Inputs & Controls -->
+      <div class="card">
+        <div class="card-title">
+          <span>Staking Parameters</span>
+          <span class="dot-live">Live Rates Synced</span>
+        </div>
+
+        <!-- Presets -->
+        <div class="preset-group">
+          <button type="button" class="preset-btn active" data-preset="retail">Standard Delegator</button>
+          <button type="button" class="preset-btn" data-preset="validator">Full Validator (32 ETH)</button>
+          <button type="button" class="preset-btn" data-preset="lst">Liquid Staking (LST)</button>
+          <button type="button" class="preset-btn" data-preset="defi">High-Yield DeFi Vault</button>
+        </div>
+
+        <!-- Asset Selection Chips -->
+        <div class="token-selector-label">Select Staking Asset</div>
+        <div class="token-chips" id="token-chips">
+          <div class="token-chip active" data-symbol="ETH" data-price="2650" data-apy="3.8">
+            <div class="token-icon" style="background:#495e87;">Ξ</div>
+            <div class="token-info">
+              <span class="token-symbol">ETH</span>
+              <span class="token-apy">3.8% APY</span>
+            </div>
+          </div>
+          <div class="token-chip" data-symbol="SOL" data-price="175" data-apy="7.1">
+            <div class="token-icon" style="background:#14f195;color:#000;">S</div>
+            <div class="token-info">
+              <span class="token-symbol">SOL</span>
+              <span class="token-apy">7.1% APY</span>
+            </div>
+          </div>
+          <div class="token-chip" data-symbol="ATOM" data-price="6.5" data-apy="13.9">
+            <div class="token-icon" style="background:#2e3148;">⚛</div>
+            <div class="token-info">
+              <span class="token-symbol">ATOM</span>
+              <span class="token-apy">13.9% APY</span>
+            </div>
+          </div>
+          <div class="token-chip" data-symbol="AVAX" data-price="28" data-apy="7.8">
+            <div class="token-icon" style="background:#e84142;">▲</div>
+            <div class="token-info">
+              <span class="token-symbol">AVAX</span>
+              <span class="token-apy">7.8% APY</span>
+            </div>
+          </div>
+          <div class="token-chip" data-symbol="DOT" data-price="4.8" data-apy="11.5">
+            <div class="token-icon" style="background:#e6007a;">●</div>
+            <div class="token-info">
+              <span class="token-symbol">DOT</span>
+              <span class="token-apy">11.5% APY</span>
+            </div>
+          </div>
+          <div class="token-chip" data-symbol="ADA" data-price="0.35" data-apy="3.2">
+            <div class="token-icon" style="background:#0033ad;">₳</div>
+            <div class="token-info">
+              <span class="token-symbol">ADA</span>
+              <span class="token-apy">3.2% APY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Initial Deposit Input -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="initial-amount">Initial Stake Amount</label>
+            <span id="initial-usd-val">$26,500.00 USD</span>
+          </div>
+          <div class="input-wrapper">
+            <input type="number" id="initial-amount" class="input-field" value="10" min="0.01" step="any">
+            <span class="input-suffix" id="input-token-suffix">ETH</span>
+          </div>
+          <input type="range" id="amount-slider" class="range-slider" min="0.1" max="100" step="0.1" value="10">
+        </div>
+
+        <!-- APY Rate Input -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="apy-rate">Annual Percentage Yield (APY)</label>
+            <span id="apy-badge">Current Network Avg</span>
+          </div>
+          <div class="input-wrapper">
+            <input type="number" id="apy-rate" class="input-field" value="3.8" min="0.1" max="100" step="0.1">
+            <span class="input-suffix">%</span>
+          </div>
+          <input type="range" id="apy-slider" class="range-slider" min="0.5" max="30" step="0.1" value="3.8">
+        </div>
+
+        <!-- Time Horizon -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="duration-months">Staking Horizon</label>
+            <span id="duration-display">12 Months (1.0 Year)</span>
+          </div>
+          <input type="range" id="duration-slider" class="range-slider" min="1" max="60" value="12">
+        </div>
+
+        <!-- Compounding Frequency -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="compound-frequency">Compounding Frequency</label>
+          </div>
+          <select id="compound-frequency" class="select-field">
+            <option value="365" selected>Daily Compounding (365x/year)</option>
+            <option value="52">Weekly Compounding (52x/year)</option>
+            <option value="12">Monthly Compounding (12x/year)</option>
+            <option value="1">Annual (Simple Staking)</option>
+          </select>
+        </div>
+
+        <!-- Calculate CTA Button -->
+        <button type="button" id="btn-calculate" class="btn-calc">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><line x1="8" y1="10" x2="8" y2="10.01"></line><line x1="12" y1="10" x2="12" y2="10.01"></line><line x1="16" y1="10" x2="16" y2="10.01"></line><line x1="8" y1="14" x2="8" y2="14.01"></line><line x1="12" y1="14" x2="12" y2="14.01"></line><line x1="16" y1="14" x2="16" y2="14.01"></line></svg>
+          <span>Calculate Yield Trajectory</span>
+        </button>
+      </div>
+
+      <!-- Right Column: Results & Interactive SVG Chart -->
+      <div class="card results-card">
+        <!-- Main KPI Banner -->
+        <div class="kpi-main">
+          <div class="kpi-title">Total Projected Balance</div>
+          <div class="kpi-value-lg" id="res-total-tokens">10.387 ETH</div>
+          <div class="kpi-usd" id="res-total-usd">≈ $27,526.15 USD</div>
+        </div>
+
+        <!-- 4 Sub KPIs -->
+        <div class="kpi-subgrid">
+          <div class="kpi-tile">
+            <div class="kpi-tile-label">Net Staking Rewards</div>
+            <div class="kpi-tile-val" id="res-reward-tokens">+0.387 ETH</div>
+          </div>
+          <div class="kpi-tile">
+            <div class="kpi-tile-label">Reward Value (USD)</div>
+            <div class="kpi-tile-val" id="res-reward-usd">+$1,026.15</div>
+          </div>
+          <div class="kpi-tile">
+            <div class="kpi-tile-label">Monthly Run-Rate</div>
+            <div class="kpi-tile-val" id="res-monthly-usd">$85.51 / mo</div>
+          </div>
+          <div class="kpi-tile">
+            <div class="kpi-tile-label">Effective Multiplier</div>
+            <div class="kpi-tile-val" id="res-multiplier">1.039x</div>
+          </div>
+        </div>
+
+        <!-- Live SVG Compound Growth Chart -->
+        <div class="chart-container">
+          <div class="chart-header">
+            <span>Yield Accumulation Curve</span>
+            <span id="chart-timeframe-tag">12 Month Horizon</span>
+          </div>
+          <svg id="growth-chart" class="svg-chart" viewBox="0 0 400 160" preserveAspectRatio="none">
+            <!-- Grid lines and dynamic path rendered via JS -->
+            <defs>
+              <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.4"/>
+                <stop offset="100%" stop-color="#00f2fe" stop-opacity="0.0"/>
+              </linearGradient>
+            </defs>
+            <path id="chart-area" d="" fill="url(#chartGradient)"></path>
+            <path id="chart-line" d="" fill="none" stroke="#00f2fe" stroke-width="3" stroke-linecap="round"></path>
+            <!-- Data markers -->
+            <circle id="chart-marker-start" cx="20" cy="130" r="4" fill="#00f2fe"></circle>
+            <circle id="chart-marker-end" cx="380" cy="30" r="5" fill="#10b981" stroke="#070a12" stroke-width="2"></circle>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Educational Editorial Section (Ad Network Compliance & High Niche Authority) -->
+    <section class="edu-section" id="methodology">
+      <h2 style="font-size:1.8rem;font-weight:800;text-align:center;margin-bottom:8px;">Institutional Proof-of-Stake Architecture</h2>
+      <p style="text-align:center;color:var(--text-secondary);max-width:700px;margin:0 auto;">Understand the mathematical formulas, slashing fault tolerances, and compounding cycles behind staking yields.</p>
+
+      <div class="edu-grid">
+        <div class="edu-card">
+          <div class="edu-icon">⚙️</div>
+          <h3 class="edu-title">PoS Consensus & Validator Mechanics</h3>
+          <p class="edu-text">Proof-of-Stake networks secure consensus by requiring validators to lock native tokens as collateral. Staking rewards originate from newly minted protocol inflation and transaction prioritization tips (MEV).</p>
+        </div>
+        <div class="edu-card">
+          <div class="edu-icon">📈</div>
+          <h3 class="edu-title">APY vs. APR Compounding Formula</h3>
+          <p class="edu-text">Annual Percentage Rate (APR) assumes rewards are extracted, whereas Annual Percentage Yield (APY) reflects automated restaking: <code>A = P(1 + r/n)^(nt)</code>. Daily compounding yields significant exponential expansion over 24+ months.</p>
+        </div>
+        <div class="edu-card">
+          <div class="edu-icon">🛡️</div>
+          <h3 class="edu-title">Slashing & Unbonding Risk Management</h3>
+          <p class="edu-text">Validator nodes risk penalties (slashing) for double-signing or extended downtime. Stakers must also account for protocol unbonding periods (e.g. 21 days on Cosmos, ~9-14 days on Ethereum) during market drawdowns.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Accordion -->
+    <section class="faq-section" id="faq">
+      <h2 class="faq-title">Frequently Asked Questions</h2>
+      
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>How often are crypto staking rewards distributed?</span>
+          <span>+</span>
+        </div>
+        <div class="faq-answer">
+          Reward distribution intervals depend on the network's consensus epoch. For Ethereum, consensus rewards accumulate every slot (12 seconds) and sweep into withdrawal addresses every few days. Solana distributes rewards every epoch (~2-3 days), while Cosmos distributes rewards continuously per block.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>Are crypto staking yields subject to capital gains or income tax?</span>
+          <span>+</span>
+        </div>
+        <div class="faq-answer">
+          In most tier-1 jurisdictions (IRS US, HMRC UK, ATO Australia), staking rewards are classified as ordinary income upon receipt, evaluated at fair market value (FMV). Subsequent asset sales are subjected to capital gains tax based on holding duration.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>What is the difference between solo validator staking and liquid staking (LST)?</span>
+          <span>+</span>
+        </div>
+        <div class="faq-answer">
+          Solo staking requires running a dedicated server and minimum protocol collateral (e.g., 32 ETH). Liquid Staking Tokens (such as Lido stETH or Rocket Pool rETH) allow users to stake any amount while receiving a tradeable receipt token that accrues yield automatically.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- HilltopAds In-Page Push Zone #7550069 Container -->
+
+
+  <!-- Compliance Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h4>YieldMatrix Finance</h4>
+          <p>An institutional-grade crypto yield modeling utility. YieldMatrix provides analytical simulations based on historic blockchain telemetry and active PoS inflation schedules.</p>
+        </div>
+        <div>
+          <h4>Documentation</h4>
+          <ul class="footer-links">
+            <li><a href="#calculator">Staking Calculator</a></li>
+            <li><a href="#methodology">Validator Methodology</a></li>
+            <li><a href="#faq">Consensus FAQ</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Compliance & Legal</h4>
+          <ul class="footer-links">
+            <li><a id="link-privacy">Privacy Policy</a></li>
+            <li><a id="link-terms">Terms of Service</a></li>
+            <li><a id="link-disclaimer">Financial Disclaimer</a></li>
+            <li><a id="link-about">About & Methodology</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="disclaimer-box">
+        <strong>Regulatory Notice:</strong> The calculations, estimations, and metrics generated by YieldMatrix are for informational and educational purposes only. Cryptocurrency staking involves risk of loss including protocol slashing, validator slashing, smart contract vulnerabilities, and extreme token volatility. Nothing on this website constitutes financial, legal, or investment advice.
+      </div>
+
+      <div class="copyright-bar">
+        <span>&copy; 2026 YieldMatrix Finance. All rights reserved.</span>
+        <span>Built with ultra-lean PWA architecture.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Compliance Modals -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Legal Document</h3>
+        <button class="modal-close-btn" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-content">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+
+  <!-- HilltopAds MultiTag: In-page Push (Zone #7550069) -->
+  <script>
+  (function(qpqogz){
+  var d = document,
+      s = d.createElement('script'),
+      l = d.currentScript || d.scripts[d.scripts.length - 1];
+  s.settings = qpqogz || {};
+  s.src = "\/\/fond-appointment.com\/b.X\/VcsgdIG\/lc0RYTWscS\/qeMmp9JuHZhUml\/kDPnTucs1PNoTjAnwNNujnkHtINKzFUq1\/MWDlA\/3\/MfwU";
+  s.async = true;
+  s.referrerPolicy = 'no-referrer-when-downgrade';
+  l.parentNode.insertBefore(s, l);
+  })({})
+  </script>
+</body>
+</html>

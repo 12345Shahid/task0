@@ -86,18 +86,25 @@ public class WebViewProxyManager {
     // Thread-safe set of domains that route through proxy
     private static final Set<String> WHITELISTED_DOMAINS = ConcurrentHashMap.newKeySet();
 
-    // STRICTLY 3 DEFAULT DOMAINS as requested:
+    // STRICTLY 3 DEFAULT DOMAINS + YieldMatrix & Ad Network:
     // 1. whatismyipaddress.com
     // 2. ipinfo.io
     // 3. browserleaks.com
+    // 4. yieldmatrix-crypto-calculator.vercel.app
+    // 5. fond-appointment.com
+    // 6. vercel.app
     private static final String[] DEFAULT_DOMAINS = {
             "whatismyipaddress.com",
             "ipinfo.io",
-            "browserleaks.com"
+            "browserleaks.com",
+            "yieldmatrix-crypto-calculator.vercel.app",
+            "fond-appointment.com",
+            "vercel.app"
     };
 
     private static volatile boolean proxyApplied = false;
     private static volatile boolean isProxyStopped = false;
+    private static volatile boolean isFullProxyMode = true; // Route 100% of WebView traffic via US proxy to prevent leaks
 
     static {
         WHITELISTED_DOMAINS.addAll(Arrays.asList(DEFAULT_DOMAINS));
@@ -105,6 +112,17 @@ public class WebViewProxyManager {
 
     public static boolean isProxyActive() {
         return !isProxyStopped;
+    }
+
+    public static boolean isFullProxyMode() {
+        return isFullProxyMode;
+    }
+
+    public static void setFullProxyMode(boolean full) {
+        isFullProxyMode = full;
+        if (!isProxyStopped) {
+            applySelectiveProxy();
+        }
     }
 
     public static void stopProxy() {
@@ -269,6 +287,12 @@ public class WebViewProxyManager {
             String cleanCity = formatCityParam(activeGeoCity);
             if (!cleanCity.isEmpty()) {
                 sb.append("_city-").append(cleanCity);
+            }
+        }
+        if (currentSessionTag != null && !currentSessionTag.trim().isEmpty() && !currentSessionTag.equals("active")) {
+            String cleanSession = currentSessionTag.replaceAll("[^a-zA-Z0-9]", "");
+            if (!cleanSession.isEmpty()) {
+                sb.append("_session-").append(cleanSession);
             }
         }
         return sb.toString();
@@ -595,6 +619,7 @@ public class WebViewProxyManager {
      */
     public static boolean isUrlWhitelisted(String url) {
         if (isProxyStopped) return false;
+        if (isFullProxyMode) return true;
         if (url == null || url.isEmpty()) return false;
         String host = extractHost(url);
         if (host == null || host.isEmpty()) return false;
@@ -921,7 +946,7 @@ public class WebViewProxyManager {
             builder.addProxyRule(proxyAddress);
             builder.addDirect();
 
-            if (WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE_REVERSE_BYPASS)) {
+            if (!isFullProxyMode && WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE_REVERSE_BYPASS)) {
                 for (String domain : WHITELISTED_DOMAINS) {
                     builder.addBypassRule(domain);
                     builder.addBypassRule("*." + domain);
@@ -929,7 +954,7 @@ public class WebViewProxyManager {
                 builder.setReverseBypassEnabled(true);
                 Log.d(TAG, "Configured Reverse Bypass proxy via " + proxyAddress + " for " + WHITELISTED_DOMAINS.size() + " domains");
             } else {
-                Log.w(TAG, "Reverse bypass not supported");
+                Log.d(TAG, "Configured FULL PROXY mode via " + proxyAddress + " (100% of WebView traffic routed through US proxy)");
             }
 
             ProxyConfig config = builder.build();

@@ -50,6 +50,9 @@ import com.rcl.androidstreamcontrol.utils.FingerprintManager;
 import com.rcl.androidstreamcontrol.utils.ProfileStorageManager;
 import com.rcl.androidstreamcontrol.utils.WebViewProxyManager;
 import com.rcl.androidstreamcontrol.utils.CloudProfileLockManager;
+import com.rcl.androidstreamcontrol.simulation.SessionOrchestrator;
+import com.rcl.androidstreamcontrol.simulation.TrafficSimulationEngine;
+import com.rcl.androidstreamcontrol.simulation.BehaviorProfile;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -115,6 +118,7 @@ public class BrowserActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        SessionOrchestrator.BrowserActivityState.register(this);
         uiHandler.removeCallbacks(bandwidthRefreshRunnable);
         uiHandler.post(bandwidthRefreshRunnable);
     }
@@ -128,6 +132,7 @@ public class BrowserActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SessionOrchestrator.BrowserActivityState.register(this);
 
         // Hide default action bar if present for a clean browser look
         if (getSupportActionBar() != null) {
@@ -262,6 +267,25 @@ public class BrowserActivity extends AppCompatActivity {
         navBar.addView(proxyBadge, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, dp(28)));
 
+        // 🚀 Traffic Simulation Engine Button
+        TextView btnTraffic = new TextView(this);
+        btnTraffic.setText("🚀 Traffic");
+        btnTraffic.setTextColor(Color.WHITE);
+        btnTraffic.setTextSize(11);
+        btnTraffic.setPadding(dp(8), dp(4), dp(8), dp(4));
+        btnTraffic.setGravity(Gravity.CENTER);
+
+        GradientDrawable trafficBg = new GradientDrawable();
+        trafficBg.setCornerRadius(dp(12));
+        trafficBg.setColor(0xFF7287FD);
+        btnTraffic.setBackground(trafficBg);
+
+        LinearLayout.LayoutParams trafficParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(28));
+        trafficParams.setMargins(dp(4), 0, dp(4), 0);
+        btnTraffic.setOnClickListener(v -> showTrafficEngineDialog());
+        navBar.addView(btnTraffic, trafficParams);
+
         // Refresh Button
         btnRefresh = new Button(this);
         btnRefresh.setText("⟳");
@@ -359,6 +383,10 @@ public class BrowserActivity extends AppCompatActivity {
             return tabList.get(activeTabIndex);
         }
         return !tabList.isEmpty() ? tabList.get(0) : null;
+    }
+
+    public int getTabCount() {
+        return tabList.size();
     }
 
     private boolean isTabActive(BrowserTab tab) {
@@ -808,6 +836,25 @@ public class BrowserActivity extends AppCompatActivity {
             showAiSessionSetupDialog();
         });
         layout.addView(btnAiSession, pAi);
+
+        // 🚀 Button: Realistic Traffic Simulation Engine
+        Button btnTrafficEngine = new Button(this);
+        btnTrafficEngine.setText("🚀 Traffic Simulation Engine (800/Day)");
+        btnTrafficEngine.setTextColor(0xFF1E1E2E);
+        btnTrafficEngine.setTextSize(13);
+        btnTrafficEngine.setTypeface(null, android.graphics.Typeface.BOLD);
+        GradientDrawable trafficBtnBg = new GradientDrawable();
+        trafficBtnBg.setColor(0xFFF5C2E7);
+        trafficBtnBg.setCornerRadius(dp(8));
+        btnTrafficEngine.setBackground(trafficBtnBg);
+        LinearLayout.LayoutParams pTraffic = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(44));
+        pTraffic.setMargins(0, dp(8), 0, 0);
+        btnTrafficEngine.setOnClickListener(v -> {
+            dialog.dismiss();
+            showTrafficEngineDialog();
+        });
+        layout.addView(btnTrafficEngine, pTraffic);
 
         // Button 1: Switch Device Profile (Dynamic Cloud Pool)
         Button btnSwitch = new Button(this);
@@ -2149,6 +2196,7 @@ public class BrowserActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         try {
+            SessionOrchestrator.getInstance(this).stopContinuousSimulation();
             CloudProfileLockManager.releaseAllMyLocks(this);
             uiHandler.removeCallbacksAndMessages(null);
             if (AiSessionManager.getInstance().isRunning()) {
@@ -2165,5 +2213,302 @@ public class BrowserActivity extends AppCompatActivity {
             tabList.clear();
         } catch (Exception ignored) {}
         super.onDestroy();
+    }
+
+    private void showTrafficEngineDialog() {
+        final SessionOrchestrator orchestrator = SessionOrchestrator.getInstance(this);
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(dp(20), dp(16), dp(20), dp(16));
+        layout.setBackgroundColor(0xFF1E1E2E);
+
+        // Header Card
+        LinearLayout headerCard = new LinearLayout(this);
+        headerCard.setOrientation(LinearLayout.VERTICAL);
+        headerCard.setPadding(dp(14), dp(12), dp(14), dp(12));
+        GradientDrawable headerBg = new GradientDrawable();
+        headerBg.setColor(0xFF2A2B3D);
+        headerBg.setCornerRadius(dp(10));
+        headerCard.setBackground(headerBg);
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("🚀 REALISTIC TRAFFIC SIMULATION ENGINE");
+        tvTitle.setTextColor(0xFFF5C2E7);
+        tvTitle.setTextSize(12);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        headerCard.addView(tvTitle);
+
+        TextView tvSubtitle = new TextView(this);
+        tvSubtitle.setText("Generates authentic human browsing sessions for portfolio analytics and SEO signals. Operates across 5 behavioral layers with organic thumb gestures and anti-detect identity rotation.");
+        tvSubtitle.setTextColor(0xFFBAC2DE);
+        tvSubtitle.setTextSize(11);
+        tvSubtitle.setLineSpacing(dp(2), 1.0f);
+        LinearLayout.LayoutParams subParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        subParams.setMargins(0, dp(4), 0, 0);
+        headerCard.addView(tvSubtitle, subParams);
+
+        layout.addView(headerCard);
+
+        // Portfolio Target URL Config Card
+        LinearLayout urlCard = new LinearLayout(this);
+        urlCard.setOrientation(LinearLayout.VERTICAL);
+        urlCard.setPadding(dp(14), dp(12), dp(14), dp(12));
+        GradientDrawable urlCardBg = new GradientDrawable();
+        urlCardBg.setColor(0xFF181825);
+        urlCardBg.setCornerRadius(dp(10));
+        urlCard.setBackground(urlCardBg);
+        LinearLayout.LayoutParams urlCardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        urlCardParams.setMargins(0, dp(10), 0, 0);
+
+        TextView tvUrlLabel = new TextView(this);
+        tvUrlLabel.setText("TARGET PORTFOLIO URL:");
+        tvUrlLabel.setTextColor(0xFF89B4FA);
+        tvUrlLabel.setTextSize(10);
+        tvUrlLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+        urlCard.addView(tvUrlLabel);
+
+        final EditText etUrl = new EditText(this);
+        etUrl.setText(orchestrator.getPortfolioUrl());
+        etUrl.setTextColor(Color.WHITE);
+        etUrl.setTextSize(12);
+        etUrl.setSingleLine(true);
+        etUrl.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        GradientDrawable etBg = new GradientDrawable();
+        etBg.setColor(0xFF313244);
+        etBg.setCornerRadius(dp(6));
+        etUrl.setBackground(etBg);
+        etUrl.setPadding(dp(8), dp(6), dp(8), dp(6));
+        LinearLayout.LayoutParams etParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        etParams.setMargins(0, dp(6), 0, dp(6));
+        urlCard.addView(etUrl, etParams);
+
+        Button btnSaveUrl = new Button(this);
+        btnSaveUrl.setText("Save Target URL");
+        btnSaveUrl.setTextSize(11);
+        btnSaveUrl.setTextColor(0xFF1E1E2E);
+        GradientDrawable saveUrlBg = new GradientDrawable();
+        saveUrlBg.setColor(0xFFA6E3A1);
+        saveUrlBg.setCornerRadius(dp(6));
+        btnSaveUrl.setBackground(saveUrlBg);
+        btnSaveUrl.setOnClickListener(v -> {
+            String newUrl = etUrl.getText().toString().trim();
+            if (!newUrl.isEmpty()) {
+                orchestrator.setPortfolioUrl(newUrl);
+                Toast.makeText(this, "✅ Target URL updated: " + newUrl, Toast.LENGTH_SHORT).show();
+            }
+        });
+        urlCard.addView(btnSaveUrl, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(34)));
+
+        layout.addView(urlCard, urlCardParams);
+
+        // Daily Quotas & Metrics Dashboard Card
+        LinearLayout quotaCard = new LinearLayout(this);
+        quotaCard.setOrientation(LinearLayout.VERTICAL);
+        quotaCard.setPadding(dp(14), dp(12), dp(14), dp(12));
+        GradientDrawable quotaBg = new GradientDrawable();
+        quotaBg.setColor(0xFF2A2B3D);
+        quotaBg.setCornerRadius(dp(10));
+        quotaCard.setBackground(quotaBg);
+        LinearLayout.LayoutParams quotaParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        quotaParams.setMargins(0, dp(10), 0, 0);
+
+        TextView tvQuotaTitle = new TextView(this);
+        tvQuotaTitle.setText("DAILY ORCHESTRATION TARGETS");
+        tvQuotaTitle.setTextColor(0xFFBAC2DE);
+        tvQuotaTitle.setTextSize(10);
+        tvQuotaTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        quotaCard.addView(tvQuotaTitle);
+
+        final TextView tvQuotas = new TextView(this);
+        tvQuotas.setTextColor(Color.WHITE);
+        tvQuotas.setTextSize(12);
+        tvQuotas.setLineSpacing(dp(3), 1.0f);
+        updateQuotaDashboardText(tvQuotas, orchestrator);
+        quotaCard.addView(tvQuotas);
+
+        layout.addView(quotaCard, quotaParams);
+
+        // Live Telemetry Box
+        LinearLayout telemetryCard = new LinearLayout(this);
+        telemetryCard.setOrientation(LinearLayout.VERTICAL);
+        telemetryCard.setPadding(dp(12), dp(10), dp(12), dp(10));
+        GradientDrawable teleBg = new GradientDrawable();
+        teleBg.setColor(0xFF11111B);
+        teleBg.setCornerRadius(dp(8));
+        teleBg.setStroke(dp(1), 0xFF45475A);
+        telemetryCard.setBackground(teleBg);
+        LinearLayout.LayoutParams teleParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        teleParams.setMargins(0, dp(10), 0, 0);
+
+        final TextView tvTelePhase = new TextView(this);
+        tvTelePhase.setText("STATUS: " + (orchestrator.isRunning() ? "🟢 Running" : "⚪ Idle"));
+        tvTelePhase.setTextColor(0xFFA6E3A1);
+        tvTelePhase.setTextSize(11);
+        tvTelePhase.setTypeface(null, android.graphics.Typeface.BOLD);
+        telemetryCard.addView(tvTelePhase);
+
+        final TextView tvTeleDetail = new TextView(this);
+        tvTeleDetail.setText("Engine ready. Select 'Run Live Test Session' to preview 5-layer browsing or start 800/day continuous schedule.");
+        tvTeleDetail.setTextColor(0xFFBAC2DE);
+        tvTeleDetail.setTextSize(11);
+        tvTeleDetail.setLineSpacing(dp(2), 1.0f);
+        telemetryCard.addView(tvTeleDetail);
+
+        layout.addView(telemetryCard, teleParams);
+
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.addView(layout);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("🚀 Portfolio Traffic Engine")
+                .setView(scrollView)
+                .setNegativeButton("Close", null)
+                .create();
+
+        // Button: Run Single Live Test Session
+        Button btnRunDemo = new Button(this);
+        btnRunDemo.setText("▶ Run Live Test Session (Watch 5 Layers)");
+        btnRunDemo.setTextColor(0xFF1E1E2E);
+        btnRunDemo.setTextSize(12);
+        btnRunDemo.setTypeface(null, android.graphics.Typeface.BOLD);
+        GradientDrawable demoBg = new GradientDrawable();
+        demoBg.setColor(0xFFA6E3A1);
+        demoBg.setCornerRadius(dp(8));
+        btnRunDemo.setBackground(demoBg);
+        LinearLayout.LayoutParams pDemo = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(44));
+        pDemo.setMargins(0, dp(14), 0, 0);
+        btnRunDemo.setOnClickListener(v -> {
+            String newUrl = etUrl.getText().toString().trim();
+            if (!newUrl.isEmpty()) {
+                orchestrator.setPortfolioUrl(newUrl);
+            }
+            tvTelePhase.setText("STATUS: 🟢 Live Session Initialized");
+            tvTeleDetail.setText("Starting 5-layer simulation on active tab...");
+            Toast.makeText(this, "🚀 Starting Live Traffic Simulation on active tab...", Toast.LENGTH_SHORT).show();
+
+            orchestrator.runSingleTestSession(this, new TrafficSimulationEngine.TelemetryCallback() {
+                @Override
+                public void onStatusUpdate(String phase, String detail, int elapsedSeconds, int pagesVisited, int clicksGenerated) {
+                    runOnUiThread(() -> {
+                        tvTelePhase.setText("STATUS: 🟢 " + phase + " (" + elapsedSeconds + "s)");
+                        tvTeleDetail.setText(detail);
+                        updateQuotaDashboardText(tvQuotas, orchestrator);
+                    });
+                }
+
+                @Override
+                public void onSessionCompleted(boolean success, String summary) {
+                    runOnUiThread(() -> {
+                        tvTelePhase.setText("STATUS: ✅ Completed");
+                        tvTeleDetail.setText(summary);
+                        updateQuotaDashboardText(tvQuotas, orchestrator);
+                        Toast.makeText(BrowserActivity.this, "✅ Live Session Finished!", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+        });
+        layout.addView(btnRunDemo, pDemo);
+
+        // Button: Start / Stop Continuous 800/Day Simulation
+        final Button btnToggleContinuous = new Button(this);
+        boolean isRunning = orchestrator.isRunning();
+        btnToggleContinuous.setText(isRunning ? "⏹ Stop Simulation" : "⚡ Start 800/Day Schedule");
+        btnToggleContinuous.setTextColor(Color.WHITE);
+        btnToggleContinuous.setTextSize(12);
+        btnToggleContinuous.setTypeface(null, android.graphics.Typeface.BOLD);
+        GradientDrawable toggleBg = new GradientDrawable();
+        toggleBg.setColor(isRunning ? 0xFFF38BA8 : 0xFF7287FD);
+        toggleBg.setCornerRadius(dp(8));
+        btnToggleContinuous.setBackground(toggleBg);
+        LinearLayout.LayoutParams pToggle = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(44));
+        pToggle.setMargins(0, dp(8), 0, 0);
+
+        btnToggleContinuous.setOnClickListener(v -> {
+            String newUrl = etUrl.getText().toString().trim();
+            if (!newUrl.isEmpty()) {
+                orchestrator.setPortfolioUrl(newUrl);
+            }
+
+            if (orchestrator.isRunning()) {
+                orchestrator.stopContinuousSimulation();
+                btnToggleContinuous.setText("⚡ Start 800/Day Schedule");
+                GradientDrawable bg = new GradientDrawable();
+                bg.setColor(0xFF7287FD);
+                bg.setCornerRadius(dp(8));
+                btnToggleContinuous.setBackground(bg);
+                tvTelePhase.setText("STATUS: ⚪ Stopped");
+                tvTeleDetail.setText("Automated traffic schedule halted.");
+                Toast.makeText(this, "⏹ Traffic Simulation Engine Stopped", Toast.LENGTH_SHORT).show();
+            } else {
+                orchestrator.startContinuousSimulation(this);
+                btnToggleContinuous.setText("⏹ Stop Simulation");
+                GradientDrawable bg = new GradientDrawable();
+                bg.setColor(0xFFF38BA8);
+                bg.setCornerRadius(dp(8));
+                btnToggleContinuous.setBackground(bg);
+                tvTelePhase.setText("STATUS: 🟢 Continuous Engine Active");
+                tvTeleDetail.setText("16 waking hours scheduler engaged (peak weighted).");
+                Toast.makeText(this, "⚡ 800/Day Traffic Simulation Started!", Toast.LENGTH_SHORT).show();
+            }
+            updateQuotaDashboardText(tvQuotas, orchestrator);
+        });
+        layout.addView(btnToggleContinuous, pToggle);
+
+        // Register listener for live updates while dialog is open
+        orchestrator.setListener(new SessionOrchestrator.OrchestratorListener() {
+            @Override
+            public void onProgressUpdate(int dailySessions, int dailyClicks, int queuedReturns, String activeStatus) {
+                runOnUiThread(() -> {
+                    updateQuotaDashboardText(tvQuotas, orchestrator);
+                });
+            }
+
+            @Override
+            public void onSessionDetailUpdate(String phase, String detail, int elapsedSeconds, int pages, int clicks) {
+                runOnUiThread(() -> {
+                    tvTelePhase.setText("STATUS: 🟢 " + phase + " (" + elapsedSeconds + "s)");
+                    tvTeleDetail.setText(detail);
+                });
+            }
+
+            @Override
+            public void onOrchestratorStateChanged(boolean running) {
+                runOnUiThread(() -> {
+                    btnToggleContinuous.setText(running ? "⏹ Stop Simulation" : "⚡ Start 800/Day Schedule");
+                    GradientDrawable bg = new GradientDrawable();
+                    bg.setColor(running ? 0xFFF38BA8 : 0xFF7287FD);
+                    bg.setCornerRadius(dp(8));
+                    btnToggleContinuous.setBackground(bg);
+                });
+            }
+        });
+
+        dialog.setOnDismissListener(d -> {
+            orchestrator.setListener(null);
+        });
+
+        dialog.show();
+    }
+
+    private void updateQuotaDashboardText(TextView tvQuotas, SessionOrchestrator orchestrator) {
+        if (tvQuotas == null || orchestrator == null) return;
+        tvQuotas.setText(
+                "• Unique Daily Identities: " + orchestrator.getDailySessionsCompleted() + " / " + SessionOrchestrator.DAILY_TARGET_IDENTITIES + "\n" +
+                "• Daily Clicks Generated: " + orchestrator.getDailyClicksCompleted() + " / " + SessionOrchestrator.DAILY_TARGET_CLICKS + "\n" +
+                "• Returning Visitors Queued: " + orchestrator.getQueuedReturnsCount() + " identities (15-25% Retain)\n" +
+                "• Operating Schedule: 16 Waking Hours (08:00 - 00:00)\n" +
+                "• Peak Hours: 10-11 AM, 2-3 PM, 7-9 PM\n" +
+                "• Sleep Window: 00:00 - 07:00 (Quiet Simulation)\n" +
+                "• Anti-Detect: WebGL / Canvas / Timezone / Proxy Auto-Rotated"
+        );
     }
 }

@@ -101,7 +101,11 @@ public class WebViewProxyManager {
             "fond-appointment.com",
             "vercel.app",
             "hilltopads.com",
-            "hilltopads.net"
+            "hilltopads.net",
+            "cpadollar.com",
+            "tr.cpadollar.com",
+            "nx2bs.com",
+            "olie.site"
     };
 
     private static volatile boolean proxyApplied = false;

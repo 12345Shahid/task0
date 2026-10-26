@@ -17,6 +17,7 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.CookieManager;
 import android.webkit.HttpAuthHandler;
 import android.webkit.SslErrorHandler;
@@ -175,11 +176,16 @@ public class BrowserActivity extends AppCompatActivity {
         root.setBackgroundColor(0xFF1E1E2E);
 
         // ── Top Navigation Bar ────────────────────────────────────────────────
-        LinearLayout navBar = new LinearLayout(this);
-        navBar.setOrientation(LinearLayout.HORIZONTAL);
-        navBar.setGravity(Gravity.CENTER_VERTICAL);
-        navBar.setPadding(dp(8), dp(8), dp(8), dp(8));
-        navBar.setBackgroundColor(0xFF181825);
+        // ── Top Header Container ──────────────────────────────────────────────
+        LinearLayout topHeader = new LinearLayout(this);
+        topHeader.setOrientation(LinearLayout.VERTICAL);
+        topHeader.setBackgroundColor(0xFF181825);
+
+        // ── Row 1: Dedicated Full-Width URL / Search Bar ──────────────────────
+        LinearLayout urlBarRow = new LinearLayout(this);
+        urlBarRow.setOrientation(LinearLayout.HORIZONTAL);
+        urlBarRow.setGravity(Gravity.CENTER_VERTICAL);
+        urlBarRow.setPadding(dp(6), dp(6), dp(6), dp(3));
 
         // Back Button
         btnBack = new Button(this);
@@ -187,13 +193,13 @@ public class BrowserActivity extends AppCompatActivity {
         btnBack.setTextColor(Color.WHITE);
         btnBack.setBackgroundColor(Color.TRANSPARENT);
         btnBack.setTextSize(14);
-        btnBack.setPadding(dp(4), dp(4), dp(4), dp(4));
+        btnBack.setPadding(dp(2), dp(2), dp(2), dp(2));
         btnBack.setOnClickListener(v -> {
             if (browser != null && browser.canGoBack()) {
                 browser.goBack();
             }
         });
-        navBar.addView(btnBack, new LinearLayout.LayoutParams(dp(36), dp(36)));
+        urlBarRow.addView(btnBack, new LinearLayout.LayoutParams(dp(30), dp(34)));
 
         // Forward Button
         btnForward = new Button(this);
@@ -201,41 +207,99 @@ public class BrowserActivity extends AppCompatActivity {
         btnForward.setTextColor(Color.WHITE);
         btnForward.setBackgroundColor(Color.TRANSPARENT);
         btnForward.setTextSize(14);
-        btnForward.setPadding(dp(4), dp(4), dp(4), dp(4));
+        btnForward.setPadding(dp(2), dp(2), dp(2), dp(2));
         btnForward.setOnClickListener(v -> {
             if (browser != null && browser.canGoForward()) {
                 browser.goForward();
             }
         });
-        navBar.addView(btnForward, new LinearLayout.LayoutParams(dp(36), dp(36)));
+        urlBarRow.addView(btnForward, new LinearLayout.LayoutParams(dp(30), dp(34)));
 
-        // URL / Search Input
+        // URL / Search Input (Prominent, full-width, auto select-all on tap)
         urlInput = new EditText(this);
         urlInput.setHint("Search or enter URL...");
         urlInput.setHintTextColor(0xFF888899);
         urlInput.setTextColor(Color.WHITE);
-        urlInput.setTextSize(13);
+        urlInput.setTextSize(12);
         urlInput.setSingleLine(true);
         urlInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         urlInput.setImeOptions(EditorInfo.IME_ACTION_GO);
+        urlInput.setSelectAllOnFocus(true);
         urlInput.setPadding(dp(10), dp(6), dp(10), dp(6));
 
         GradientDrawable urlBg = new GradientDrawable();
         urlBg.setColor(0xFF313244);
-        urlBg.setCornerRadius(dp(16));
+        urlBg.setCornerRadius(dp(14));
         urlInput.setBackground(urlBg);
 
         urlInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE) {
+            if (actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEARCH) {
                 navigateToUrl(urlInput.getText().toString());
+                urlInput.clearFocus();
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.hideSoftInputFromWindow(urlInput.getWindowToken(), 0);
+                }
                 return true;
             }
             return false;
         });
 
-        LinearLayout.LayoutParams urlParams = new LinearLayout.LayoutParams(0, dp(36), 1.0f);
-        urlParams.setMargins(dp(6), 0, dp(6), 0);
-        navBar.addView(urlInput, urlParams);
+        LinearLayout.LayoutParams urlParams = new LinearLayout.LayoutParams(0, dp(34), 1.0f);
+        urlParams.setMargins(dp(4), 0, dp(4), 0);
+        urlBarRow.addView(urlInput, urlParams);
+
+        // Go Button (Easy tap to navigate or search)
+        TextView btnGo = new TextView(this);
+        btnGo.setText("Go");
+        btnGo.setTextColor(Color.WHITE);
+        btnGo.setTextSize(11);
+        btnGo.setTypeface(null, android.graphics.Typeface.BOLD);
+        btnGo.setPadding(dp(10), dp(4), dp(10), dp(4));
+        btnGo.setGravity(Gravity.CENTER);
+        GradientDrawable goBg = new GradientDrawable();
+        goBg.setCornerRadius(dp(12));
+        goBg.setColor(0xFF3B82F6); // Clean blue
+        btnGo.setBackground(goBg);
+        btnGo.setOnClickListener(v -> {
+            navigateToUrl(urlInput.getText().toString());
+            urlInput.clearFocus();
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(urlInput.getWindowToken(), 0);
+            }
+        });
+        LinearLayout.LayoutParams goParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(28));
+        goParams.setMargins(0, 0, dp(4), 0);
+        urlBarRow.addView(btnGo, goParams);
+
+        // Refresh Button
+        btnRefresh = new Button(this);
+        btnRefresh.setText("⟳");
+        btnRefresh.setTextColor(Color.WHITE);
+        btnRefresh.setBackgroundColor(Color.TRANSPARENT);
+        btnRefresh.setTextSize(15);
+        btnRefresh.setPadding(dp(2), dp(2), dp(2), dp(2));
+        btnRefresh.setOnClickListener(v -> {
+            if (browser != null) {
+                browser.reload();
+            }
+        });
+        urlBarRow.addView(btnRefresh, new LinearLayout.LayoutParams(dp(30), dp(34)));
+
+        topHeader.addView(urlBarRow, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        // ── Row 2: Controls & Status Bar (Horizontal Scrollable) ───────────────
+        HorizontalScrollView controlsScroll = new HorizontalScrollView(this);
+        controlsScroll.setHorizontalScrollBarEnabled(false);
+        controlsScroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        controlsScroll.setPadding(dp(6), dp(1), dp(6), dp(5));
+
+        LinearLayout controlsRow = new LinearLayout(this);
+        controlsRow.setOrientation(LinearLayout.HORIZONTAL);
+        controlsRow.setGravity(Gravity.CENTER_VERTICAL);
 
         // 👤 Profile Menu Button (Clickable Pill)
         btnProfile = new TextView(this);
@@ -251,10 +315,10 @@ public class BrowserActivity extends AppCompatActivity {
         btnProfile.setBackground(profileBg);
 
         LinearLayout.LayoutParams profileParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(28));
-        profileParams.setMargins(0, 0, dp(4), 0);
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(26));
+        profileParams.setMargins(0, 0, dp(6), 0);
         btnProfile.setOnClickListener(v -> showProfileManagerDialog());
-        navBar.addView(btnProfile, profileParams);
+        controlsRow.addView(btnProfile, profileParams);
 
         // Proxy Status Badge (Clickable pill)
         proxyBadge = new TextView(this);
@@ -263,9 +327,11 @@ public class BrowserActivity extends AppCompatActivity {
         proxyBadge.setGravity(Gravity.CENTER);
         updateProxyBadgeUI(false);
 
+        LinearLayout.LayoutParams proxyParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(26));
+        proxyParams.setMargins(0, 0, dp(6), 0);
         proxyBadge.setOnClickListener(v -> showWhitelistDialog());
-        navBar.addView(proxyBadge, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(28)));
+        controlsRow.addView(proxyBadge, proxyParams);
 
         // 🚀 Traffic Simulation Engine Button
         TextView btnTraffic = new TextView(this);
@@ -281,26 +347,18 @@ public class BrowserActivity extends AppCompatActivity {
         btnTraffic.setBackground(trafficBg);
 
         LinearLayout.LayoutParams trafficParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(28));
-        trafficParams.setMargins(dp(4), 0, dp(4), 0);
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(26));
+        trafficParams.setMargins(0, 0, dp(4), 0);
         btnTraffic.setOnClickListener(v -> showTrafficEngineDialog());
-        navBar.addView(btnTraffic, trafficParams);
+        controlsRow.addView(btnTraffic, trafficParams);
 
-        // Refresh Button
-        btnRefresh = new Button(this);
-        btnRefresh.setText("⟳");
-        btnRefresh.setTextColor(Color.WHITE);
-        btnRefresh.setBackgroundColor(Color.TRANSPARENT);
-        btnRefresh.setTextSize(16);
-        btnRefresh.setPadding(dp(4), dp(4), dp(4), dp(4));
-        btnRefresh.setOnClickListener(v -> {
-            if (browser != null) {
-                browser.reload();
-            }
-        });
-        navBar.addView(btnRefresh, new LinearLayout.LayoutParams(dp(36), dp(36)));
+        controlsScroll.addView(controlsRow, new HorizontalScrollView.LayoutParams(
+                HorizontalScrollView.LayoutParams.WRAP_CONTENT, HorizontalScrollView.LayoutParams.WRAP_CONTENT));
 
-        root.addView(navBar, new LinearLayout.LayoutParams(
+        topHeader.addView(controlsScroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        root.addView(topHeader, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         // ── Tab Bar (Horizontal Multi-Profile Tab Switcher) ───────────────────

@@ -1286,6 +1286,13 @@ public class BrowserActivity extends AppCompatActivity {
             browser.clearCache(true);
             browser.clearFormData();
             browser.clearHistory();
+            browser.evaluateJavascript(
+                    "(function(){" +
+                    "if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){for(var i=0;i<rs.length;i++){rs[i].unregister();}}).catch(function(){});}" +
+                    "if('caches' in window){caches.keys().then(function(ks){for(var i=0;i<ks.length;i++){caches.delete(ks[i]);}}).catch(function(){});}" +
+                    "})()",
+                    null
+            );
         }
 
         // 4. Select a fresh random device profile from pool of chosen platform

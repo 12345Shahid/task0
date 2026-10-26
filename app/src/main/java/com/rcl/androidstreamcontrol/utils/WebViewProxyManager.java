@@ -289,12 +289,6 @@ public class WebViewProxyManager {
                 sb.append("_city-").append(cleanCity);
             }
         }
-        if (currentSessionTag != null && !currentSessionTag.trim().isEmpty() && !currentSessionTag.equals("active")) {
-            String cleanSession = currentSessionTag.replaceAll("[^a-zA-Z0-9]", "");
-            if (!cleanSession.isEmpty()) {
-                sb.append("_session-").append(cleanSession);
-            }
-        }
         return sb.toString();
     }
 

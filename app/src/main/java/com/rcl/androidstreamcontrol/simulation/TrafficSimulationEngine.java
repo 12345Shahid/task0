@@ -186,17 +186,64 @@ public class TrafficSimulationEngine {
             public void run() {
                 if (!isRunning) return;
 
-                int settlementDelayMs = 3000 + random.nextInt(2001); // 3-5 seconds
-                notifyStatus("Layer 1: Impression Verified",
-                        "DOM rendered. Settling fonts & stylesheets (" + (settlementDelayMs / 1000) + "s)", getElapsedSeconds());
-
-                handler.postDelayed(() -> {
+                verifyAdCreativePresence(() -> {
                     if (!isRunning) return;
-                    pagesVisited++;
-                    executeLayer2Interaction();
-                }, settlementDelayMs);
+                    int settlementDelayMs = 2500 + random.nextInt(1501); // 2.5 - 4s
+                    notifyStatus("Layer 1: Impression Verified",
+                            "DOM & In-Page Push Creative active. Settling (" + (settlementDelayMs / 1000) + "s)", getElapsedSeconds());
+
+                    handler.postDelayed(() -> {
+                        if (!isRunning) return;
+                        pagesVisited++;
+                        executeLayer2Interaction();
+                    }, settlementDelayMs);
+                });
             }
         });
+    }
+
+    private void verifyAdCreativePresence(Runnable onVerified) {
+        if (!isRunning || webView == null) {
+            if (onVerified != null) onVerified.run();
+            return;
+        }
+
+        final int maxAdChecks = 8; // Check every 800ms up to ~6.4 seconds
+        final int[] checks = {0};
+
+        Runnable adCheckRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (!isRunning || webView == null) return;
+                checks[0]++;
+
+                webView.evaluateJavascript(
+                        "(function() {" +
+                        "  var hasInPage = document.querySelector('[class*=\"inpage\"], [id*=\"inpage\"], [class*=\"push\"], [id*=\"push\"]') !== null;" +
+                        "  var hasAdScript = document.querySelector('script[src*=\"fond-appointment\"], script[src*=\"hilltop\"]') !== null;" +
+                        "  var hasAdFrame = document.querySelector('iframe[src*=\"fond-appointment\"], iframe[src*=\"hilltop\"]') !== null;" +
+                        "  return hasInPage || hasAdScript || hasAdFrame;" +
+                        "})()",
+                        value -> {
+                            if (!isRunning) return;
+                            boolean adFound = (value != null && "true".equalsIgnoreCase(value.trim()));
+                            if (adFound) {
+                                notifyStatus("Layer 1: Ad Creative Verified",
+                                        "HilltopAds In-Page Push physically rendered in DOM", getElapsedSeconds());
+                                if (onVerified != null) onVerified.run();
+                            } else if (checks[0] >= maxAdChecks) {
+                                notifyStatus("Layer 1: Settlement Complete",
+                                        "Ad script settlement window elapsed. Proceeding.", getElapsedSeconds());
+                                if (onVerified != null) onVerified.run();
+                            } else {
+                                handler.postDelayed(this, 800);
+                            }
+                        }
+                );
+            }
+        };
+
+        handler.postDelayed(adCheckRunnable, 500);
     }
 
     private void waitForPageReady(Runnable onReady) {

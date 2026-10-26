@@ -409,10 +409,28 @@ public class SessionOrchestrator {
             CookieManager.getInstance().flush();
             WebStorage.getInstance().deleteAllData();
 
-            // Distinct hardware profile
+            // Clear WebView cache, history, and service workers to force fresh download
+            if (tab != null && tab.webView != null) {
+                tab.webView.post(() -> {
+                    try {
+                        tab.webView.clearCache(true);
+                        tab.webView.clearFormData();
+                        tab.webView.clearHistory();
+                        tab.webView.evaluateJavascript(
+                                "(function(){" +
+                                "if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){for(var i=0;i<rs.length;i++){rs[i].unregister();}}).catch(function(){});}" +
+                                "if('caches' in window){caches.keys().then(function(ks){for(var i=0;i<ks.length;i++){caches.delete(ks[i]);}}).catch(function(){});}" +
+                                "})()",
+                                null
+                        );
+                    } catch (Exception ignored) {}
+                });
+            }
+
+            // Distinct hardware profile (strictly Android flagship profiles for Android engine consistency)
             Set<String> used = new HashSet<>(CloudProfileLockManager.getRemoteLockedProfileNames());
-            JSONObject prof = specificProfile != null ? specificProfile : DeviceProfilePool.getRandomProfileExcluding(used);
-            if (prof == null) prof = DeviceProfilePool.getRandomProfile();
+            JSONObject prof = specificProfile != null ? specificProfile : DeviceProfilePool.getRandomAndroidProfileExcluding(used);
+            if (prof == null) prof = DeviceProfilePool.getRandomAndroidProfile();
 
             double seed = random.nextDouble();
             String sessionTag = "tab-" + UUID.randomUUID().toString().substring(0, 8);

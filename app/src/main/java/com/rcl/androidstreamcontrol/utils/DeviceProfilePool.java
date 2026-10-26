@@ -1148,6 +1148,33 @@ public class DeviceProfilePool {
     }
 
     /**
+     * Get a random Android-only profile excluding already used/locked device model names.
+     */
+    public static JSONObject getRandomAndroidProfileExcluding(java.util.Set<String> usedModelNames) {
+        try {
+            JSONArray all = getAllProfiles();
+            java.util.List<JSONObject> available = new java.util.ArrayList<>();
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject p = all.getJSONObject(i);
+                String name = p.optString("name", "");
+                String nameLower = name.toLowerCase();
+                if (nameLower.contains("iphone") || nameLower.contains("ipad")) {
+                    continue; // Exclude iOS profiles
+                }
+                if (usedModelNames == null || !usedModelNames.contains(name)) {
+                    available.add(p);
+                }
+            }
+            if (!available.isEmpty()) {
+                return available.get(new Random().nextInt(available.size()));
+            }
+            return getRandomAndroidProfile();
+        } catch (Exception e) {
+            return getRandomAndroidProfile();
+        }
+    }
+
+    /**
      * Get a specific profile by index from the active pool.
      */
     public static JSONObject getProfile(int index) {

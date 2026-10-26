@@ -144,6 +144,7 @@ public class TrafficSimulationEngine {
     }
 
     private void notifyStatus(String phase, String detail, int elapsed) {
+        Log.i(TAG, "[" + phase + "] " + detail + " (" + elapsed + "s)");
         if (callback != null) {
             callback.onStatusUpdate(phase, detail, elapsed, pagesVisited, clicksGenerated);
         }

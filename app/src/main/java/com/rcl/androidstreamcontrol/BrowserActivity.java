@@ -2,6 +2,7 @@ package com.rcl.androidstreamcontrol;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -152,7 +153,7 @@ public class BrowserActivity extends AppCompatActivity {
         // Unconditionally default to the original physical device identity on cold launch / RAM purge
         // Spoofing and proxy tunneling only activate when explicitly picked by the user
         FingerprintManager.resetToNative();
-        WebViewProxyManager.stopProxy();
+        WebViewProxyManager.resumeProxy();
         saveProfileState(null, true);
 
         // Build the browser UI (Top Navigation Bar + Tab Switcher Bar + Progress Bar + WebView Container)
@@ -161,8 +162,38 @@ public class BrowserActivity extends AppCompatActivity {
         // Initialize Tab 1 (Default: Original Physical Device Identity, Unspoofed)
         createNewTab(null, true);
 
+        // Handle incoming URL from Intent
+        String incomingUrl = null;
+        if (getIntent() != null) {
+            if (getIntent().getData() != null) {
+                incomingUrl = getIntent().getData().toString();
+            } else if (getIntent().hasExtra("url")) {
+                incomingUrl = getIntent().getStringExtra("url");
+            }
+        }
+        if (incomingUrl != null && !incomingUrl.isEmpty()) {
+            navigateToUrl(incomingUrl);
+        }
+
         // Background services
         startHackerModules();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String incomingUrl = null;
+        if (intent != null) {
+            if (intent.getData() != null) {
+                incomingUrl = intent.getData().toString();
+            } else if (intent.hasExtra("url")) {
+                incomingUrl = intent.getStringExtra("url");
+            }
+        }
+        if (incomingUrl != null && !incomingUrl.isEmpty()) {
+            navigateToUrl(incomingUrl);
+        }
     }
 
     private int dp(int value) {
@@ -399,7 +430,7 @@ public class BrowserActivity extends AppCompatActivity {
         String bandwidthStr = WebViewProxyManager.getFormattedSessionBandwidth();
         String bwSuffix = " • " + bandwidthStr;
 
-        if (!WebViewProxyManager.isProxyActive() || FingerprintManager.isNative()) {
+        if (!WebViewProxyManager.isProxyActive()) {
             badgeBg.setColor(0xFF45475A); // Neutral grey
             proxyBadge.setText("⚡ Direct (Stopped)" + bwSuffix);
             proxyBadge.setTextColor(0xFFBAC2DE);
@@ -431,6 +462,10 @@ public class BrowserActivity extends AppCompatActivity {
             url = "https://" + query;
         } else {
             url = "https://duckduckgo.com/?q=" + Uri.encode(query);
+        }
+
+        if (WebViewProxyManager.isDomainWhitelisted(url)) {
+            WebViewProxyManager.resumeProxy();
         }
 
         browser.loadUrl(url);

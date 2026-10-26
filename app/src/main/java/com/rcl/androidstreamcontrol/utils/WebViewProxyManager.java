@@ -92,11 +92,11 @@ public class WebViewProxyManager {
     // 3. browserleaks.com
     // 4. yieldmatrix-crypto-calculator.vercel.app
     // 5. fond-appointment.com
-    // 6. vercel.app
     private static final String[] DEFAULT_DOMAINS = {
             "whatismyipaddress.com",
             "ipinfo.io",
             "browserleaks.com",
+            "iphey.com",
             "yieldmatrix-crypto-calculator.vercel.app",
             "fond-appointment.com",
             "vercel.app",
@@ -105,7 +105,9 @@ public class WebViewProxyManager {
             "cpadollar.com",
             "tr.cpadollar.com",
             "nx2bs.com",
-            "olie.site"
+            "olie.site",
+            "supplysurveylink.com",
+            "sphereoffers.com"
     };
 
     private static volatile boolean proxyApplied = false;
@@ -513,11 +515,15 @@ public class WebViewProxyManager {
                                         remoteSet.add(domain);
                                     }
                                 }
-                                if (!remoteSet.isEmpty() && !remoteSet.equals(WHITELISTED_DOMAINS)) {
-                                    WHITELISTED_DOMAINS.clear();
-                                    WHITELISTED_DOMAINS.addAll(remoteSet);
-                                    updated = true;
-                                    Log.d(TAG, "Supabase whitelist updated: " + WHITELISTED_DOMAINS.size() + " domains");
+                                if (!remoteSet.isEmpty()) {
+                                    Set<String> merged = new HashSet<>(Arrays.asList(DEFAULT_DOMAINS));
+                                    merged.addAll(remoteSet);
+                                    if (!merged.equals(WHITELISTED_DOMAINS)) {
+                                        WHITELISTED_DOMAINS.clear();
+                                        WHITELISTED_DOMAINS.addAll(merged);
+                                        updated = true;
+                                        Log.d(TAG, "Supabase whitelist updated: " + WHITELISTED_DOMAINS.size() + " domains (merged with defaults)");
+                                    }
                                 }
                             }
                         }
@@ -592,8 +598,9 @@ public class WebViewProxyManager {
                 }
                 if (!loaded.isEmpty()) {
                     WHITELISTED_DOMAINS.clear();
+                    WHITELISTED_DOMAINS.addAll(Arrays.asList(DEFAULT_DOMAINS));
                     WHITELISTED_DOMAINS.addAll(loaded);
-                    Log.d(TAG, "Loaded " + WHITELISTED_DOMAINS.size() + " domains from cache");
+                    Log.d(TAG, "Loaded " + WHITELISTED_DOMAINS.size() + " domains from cache (merged with defaults)");
                 }
             }
         } catch (Exception e) {
@@ -615,12 +622,13 @@ public class WebViewProxyManager {
         }
     }
 
-    /**
-     * Check if a given URL is in the proxy whitelist.
-     */
     public static boolean isUrlWhitelisted(String url) {
         if (isProxyStopped) return false;
         if (isFullProxyMode) return true;
+        return isDomainWhitelisted(url);
+    }
+
+    public static boolean isDomainWhitelisted(String url) {
         if (url == null || url.isEmpty()) return false;
         String host = extractHost(url);
         if (host == null || host.isEmpty()) return false;

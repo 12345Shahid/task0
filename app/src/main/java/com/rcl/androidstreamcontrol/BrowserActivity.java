@@ -839,7 +839,7 @@ public class BrowserActivity extends AppCompatActivity {
 
         // 🚀 Button: Realistic Traffic Simulation Engine
         Button btnTrafficEngine = new Button(this);
-        btnTrafficEngine.setText("🚀 Traffic Simulation Engine (800/Day)");
+        btnTrafficEngine.setText("🚀 Traffic Simulation Engine (1,500/Day)");
         btnTrafficEngine.setTextColor(0xFF1E1E2E);
         btnTrafficEngine.setTextSize(13);
         btnTrafficEngine.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -2417,10 +2417,10 @@ public class BrowserActivity extends AppCompatActivity {
         });
         layout.addView(btnRunDemo, pDemo);
 
-        // Button: Start / Stop Continuous 800/Day Simulation
+        // Button: Start / Stop Continuous 1,500/Day Simulation
         final Button btnToggleContinuous = new Button(this);
         boolean isRunning = orchestrator.isRunning();
-        btnToggleContinuous.setText(isRunning ? "⏹ Stop Simulation" : "⚡ Start 800/Day Schedule");
+        btnToggleContinuous.setText(isRunning ? "⏹ Stop Simulation" : "⚡ Start 1,500/Day Schedule");
         btnToggleContinuous.setTextColor(Color.WHITE);
         btnToggleContinuous.setTextSize(12);
         btnToggleContinuous.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -2440,7 +2440,7 @@ public class BrowserActivity extends AppCompatActivity {
 
             if (orchestrator.isRunning()) {
                 orchestrator.stopContinuousSimulation();
-                btnToggleContinuous.setText("⚡ Start 800/Day Schedule");
+                btnToggleContinuous.setText("⚡ Start 1,500/Day Schedule");
                 GradientDrawable bg = new GradientDrawable();
                 bg.setColor(0xFF7287FD);
                 bg.setCornerRadius(dp(8));
@@ -2457,7 +2457,7 @@ public class BrowserActivity extends AppCompatActivity {
                 btnToggleContinuous.setBackground(bg);
                 tvTelePhase.setText("STATUS: 🟢 Continuous Engine Active");
                 tvTeleDetail.setText("16 waking hours scheduler engaged (peak weighted).");
-                Toast.makeText(this, "⚡ 800/Day Traffic Simulation Started!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "⚡ 1,500/Day Traffic Simulation Started!", Toast.LENGTH_SHORT).show();
             }
             updateQuotaDashboardText(tvQuotas, orchestrator);
         });
@@ -2483,7 +2483,7 @@ public class BrowserActivity extends AppCompatActivity {
             @Override
             public void onOrchestratorStateChanged(boolean running) {
                 runOnUiThread(() -> {
-                    btnToggleContinuous.setText(running ? "⏹ Stop Simulation" : "⚡ Start 800/Day Schedule");
+                    btnToggleContinuous.setText(running ? "⏹ Stop Simulation" : "⚡ Start 1,500/Day Schedule");
                     GradientDrawable bg = new GradientDrawable();
                     bg.setColor(running ? 0xFFF38BA8 : 0xFF7287FD);
                     bg.setCornerRadius(dp(8));

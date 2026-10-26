@@ -28,6 +28,7 @@ import java.util.Locale;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -53,8 +54,8 @@ public class SessionOrchestrator {
     private static final String KEY_CLICKS_COUNT = "daily_clicks_count";
     private static final String KEY_RETURNING_QUEUE = "returning_visitors_queue";
 
-    public static final int DAILY_TARGET_IDENTITIES = 800;
-    public static final int DAILY_TARGET_CLICKS = 1000;
+    public static final int DAILY_TARGET_IDENTITIES = 1500;
+    public static final int DAILY_TARGET_CLICKS = 1800;
 
     public interface OrchestratorListener {
         void onProgressUpdate(int dailySessions, int dailyClicks, int queuedReturns, String activeStatus);
@@ -274,20 +275,9 @@ public class SessionOrchestrator {
     private void executeNextScheduledSession() {
         if (!isContinuousRunning) return;
 
-        // Verify current hour in local proxy time (sleep hours: midnight to 7 AM)
-        Calendar cal = Calendar.getInstance();
+        // Synchronize with US Eastern Time (America/New_York)
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/New_York"));
         int hour = cal.get(Calendar.HOUR_OF_DAY);
-
-        if (hour >= 0 && hour < 7) {
-            // Sleep simulation period (quiet hours)
-            long sleepDelayMs = ((7 - hour) * 3600L + (60 - cal.get(Calendar.MINUTE)) * 60L) * 1000L;
-            Log.i(TAG, "Quiet hours (00:00 - 07:00). Sleep simulation active. Sleeping until 7 AM.");
-            if (listener != null) {
-                listener.onProgressUpdate(dailySessionsCompleted, dailyClicksCompleted, returningQueue.size(), "Quiet Hours (Sleep Simulation 00:00 - 07:00)");
-            }
-            mainHandler.postDelayed(nextScheduleRunnable, Math.min(sleepDelayMs, 300000L)); // Check every 5 mins
-            return;
-        }
 
         // Check if daily target reached
         if (dailySessionsCompleted >= DAILY_TARGET_IDENTITIES) {
@@ -393,16 +383,20 @@ public class SessionOrchestrator {
     private void scheduleNextSessionDelay(int currentHour) {
         if (!isContinuousRunning) return;
 
-        // Peak hours: 10-11 AM, 2-3 PM, 7-9 PM (shorter delay between sessions)
-        boolean isPeak = (currentHour == 10 || currentHour == 11 || currentHour == 14 || currentHour == 15 || (currentHour >= 19 && currentHour <= 21));
-
-        // In 16 waking hours (57,600s), 800 sessions = avg 1 session every ~72s.
-        // Peak hours: 35-65s delay. Off-peak: 75-130s delay.
+        // Realistic US Circadian Cadence (Hour in America/New_York):
+        // 00:00 - 06:00 (Night Owl crypto activity): 65 - 105s delay (~35 - 50 sessions/hr)
+        // 06:00 - 11:00 (Morning market open / commute): 28 - 45s delay (~75 - 90 sessions/hr)
+        // 11:00 - 19:00 (Peak afternoon trading & research): 18 - 32s delay (~110 - 140 sessions/hr)
+        // 19:00 - 00:00 (Evening prime leisure browsing): 25 - 40s delay (~85 - 105 sessions/hr)
         int delaySeconds;
-        if (isPeak) {
-            delaySeconds = 35 + random.nextInt(31); // 35 - 65 seconds
+        if (currentHour >= 0 && currentHour < 6) {
+            delaySeconds = 65 + random.nextInt(41); // 65 - 105s
+        } else if (currentHour >= 6 && currentHour < 11) {
+            delaySeconds = 28 + random.nextInt(18); // 28 - 45s
+        } else if (currentHour >= 11 && currentHour < 19) {
+            delaySeconds = 18 + random.nextInt(15); // 18 - 32s
         } else {
-            delaySeconds = 70 + random.nextInt(61); // 70 - 130 seconds
+            delaySeconds = 25 + random.nextInt(16); // 25 - 40s
         }
 
         mainHandler.postDelayed(nextScheduleRunnable, delaySeconds * 1000L);

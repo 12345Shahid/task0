@@ -252,7 +252,7 @@ public class SessionOrchestrator {
     public synchronized void startContinuousSimulation(BrowserActivity activity) {
         if (isContinuousRunning) return;
         isContinuousRunning = true;
-        WebViewProxyManager.setFullProxyMode(true);
+        WebViewProxyManager.setFullProxyMode(false);
         WebViewProxyManager.resumeProxy();
         notifyListener();
         executeNextScheduledSession();
@@ -446,7 +446,7 @@ public class SessionOrchestrator {
             FingerprintManager.setCurrentNoiseSeed(seed);
             FingerprintManager.setActiveTimezone(tz);
 
-            WebViewProxyManager.setFullProxyMode(true);
+            WebViewProxyManager.setFullProxyMode(false);
             WebViewProxyManager.setSessionTag(sessionTag);
             WebViewProxyManager.resumeProxy();
             if (tab.webView != null) {
@@ -490,7 +490,7 @@ public class SessionOrchestrator {
             FingerprintManager.setCurrentProfile(sp.profileJson, false);
             FingerprintManager.setCurrentNoiseSeed(sp.noiseSeed);
             FingerprintManager.setActiveTimezone(sp.timezone);
-            WebViewProxyManager.setFullProxyMode(true);
+            WebViewProxyManager.setFullProxyMode(false);
             WebViewProxyManager.setSessionTag(sp.proxySessionTag);
             WebViewProxyManager.resumeProxy();
 

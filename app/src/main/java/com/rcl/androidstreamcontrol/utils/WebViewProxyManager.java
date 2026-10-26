@@ -99,12 +99,14 @@ public class WebViewProxyManager {
             "browserleaks.com",
             "yieldmatrix-crypto-calculator.vercel.app",
             "fond-appointment.com",
-            "vercel.app"
+            "vercel.app",
+            "hilltopads.com",
+            "hilltopads.net"
     };
 
     private static volatile boolean proxyApplied = false;
     private static volatile boolean isProxyStopped = false;
-    private static volatile boolean isFullProxyMode = true; // Route 100% of WebView traffic via US proxy to prevent leaks
+    private static volatile boolean isFullProxyMode = false; // Selective Reverse Bypass: ONLY whitelisted domains route through proxy
 
     static {
         WHITELISTED_DOMAINS.addAll(Arrays.asList(DEFAULT_DOMAINS));
@@ -115,11 +117,12 @@ public class WebViewProxyManager {
     }
 
     public static boolean isFullProxyMode() {
-        return isFullProxyMode;
+        return false;
     }
 
     public static void setFullProxyMode(boolean full) {
-        isFullProxyMode = full;
+        // Enforce strictly selective whitelist proxying to save bandwidth on non-whitelisted sites
+        isFullProxyMode = false;
         if (!isProxyStopped) {
             applySelectiveProxy();
         }

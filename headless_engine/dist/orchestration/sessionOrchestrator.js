@@ -11,6 +11,7 @@ class SessionOrchestrator {
     successfulSessions = 0;
     isRunning = false;
     activeWorkers = 0;
+    workerCounter = 0;
     constructor(options) {
         this.options = options;
     }
@@ -19,15 +20,34 @@ class SessionOrchestrator {
         console.log("==================================================================");
         console.log("🚀 ANTI-DETECT HEADLESS TRAFFIC ORCHESTRATOR STARTED");
         console.log(`🎯 Target URL: ${this.options.targetUrl}`);
-        console.log(`👥 Concurrency: ${this.options.concurrency} concurrent workers`);
+        console.log(`👥 Dynamic Concurrency: Randomized ${this.options.minConcurrency} to ${this.options.maxConcurrency} concurrent workers`);
         console.log(`📊 Goal: ${this.options.totalTargetSessions} completed sessions`);
         console.log(`🛡️ Stealth: Xvfb Virtual Display + US Residential Proxy Rotation`);
         console.log("==================================================================\n");
-        const workers = [];
-        for (let i = 1; i <= this.options.concurrency; i++) {
-            workers.push(this.runWorkerLoop(i));
+        const activePromises = new Set();
+        // Master pool scheduling loop
+        while (this.isRunning && (this.completedSessions + this.activeWorkers) < this.options.totalTargetSessions) {
+            // Pick dynamic target concurrency between min and max (e.g. 3 to 5)
+            const targetConcurrency = this.options.minConcurrency +
+                Math.floor(Math.random() * (this.options.maxConcurrency - this.options.minConcurrency + 1));
+            while (this.isRunning &&
+                this.activeWorkers < targetConcurrency &&
+                (this.completedSessions + this.activeWorkers) < this.options.totalTargetSessions) {
+                this.workerCounter++;
+                const workerId = this.workerCounter;
+                const p = this.executeSingleSession(workerId).finally(() => {
+                    activePromises.delete(p);
+                });
+                activePromises.add(p);
+                // Stagger worker launches by 4 to 10 seconds for realistic organic spread
+                const staggerDelay = 4000 + Math.floor(Math.random() * 6000);
+                await new Promise((r) => setTimeout(r, staggerDelay));
+            }
+            // Check loop every 2 seconds
+            await new Promise((r) => setTimeout(r, 2000));
         }
-        await Promise.all(workers);
+        // Wait for all remaining active sessions to complete
+        await Promise.all(Array.from(activePromises));
         console.log("\n==================================================================");
         console.log("✅ CAMPAIGN TARGET REACHED!");
         console.log(`Total Sessions: ${this.completedSessions} | Successful: ${this.successfulSessions}`);
@@ -37,48 +57,39 @@ class SessionOrchestrator {
         this.isRunning = false;
         console.log("🛑 Stopping orchestrator gracefully...");
     }
-    async runWorkerLoop(workerId) {
-        let sessionInThisWorker = 0;
-        while (this.isRunning && this.completedSessions < this.options.totalTargetSessions) {
-            this.activeWorkers++;
-            sessionInThisWorker++;
-            const profile = (0, deviceProfilePool_js_1.getRandomDeviceProfile)();
-            const proxy = proxyManager_js_1.ProxyManager.createSession(`w${workerId}-s${sessionInThisWorker}`);
-            console.log(`[Worker #${workerId}] Starting session (${this.completedSessions + 1}/${this.options.totalTargetSessions}) | Identity: ${profile.name} | Session: ${proxy.sessionTag}`);
-            let browser = null;
-            try {
-                const { browser: b, page } = await browserManager_js_1.BrowserManager.launchStealthBrowser(profile, proxy, this.options.headless);
-                browser = b;
-                const worker = new trafficSimulationWorker_js_1.TrafficSimulationWorker(page, profile, this.options.targetUrl);
-                const result = await worker.executeSession((phase, detail) => {
-                    // Log key milestones
-                    if (phase.includes("Verified") || phase.includes("Complete") || phase.includes("Error")) {
-                        console.log(`  [Worker #${workerId}] [${phase}] ${detail}`);
-                    }
-                });
-                this.completedSessions++;
-                if (result.success) {
-                    this.successfulSessions++;
+    async executeSingleSession(workerId) {
+        this.activeWorkers++;
+        const profile = (0, deviceProfilePool_js_1.getRandomDeviceProfile)();
+        const proxy = proxyManager_js_1.ProxyManager.createSession(`w${workerId}`);
+        console.log(`[Worker #${workerId}] Started (Active: ${this.activeWorkers}) | Target: ${this.completedSessions + 1}/${this.options.totalTargetSessions} | Identity: ${profile.name}`);
+        let browser = null;
+        try {
+            const { browser: b, page } = await browserManager_js_1.BrowserManager.launchStealthBrowser(profile, proxy, this.options.headless);
+            browser = b;
+            const worker = new trafficSimulationWorker_js_1.TrafficSimulationWorker(page, profile, this.options.targetUrl);
+            const result = await worker.executeSession((phase, detail) => {
+                if (phase.includes("Verified") || phase.includes("Complete") || phase.includes("Error")) {
+                    console.log(`  [Worker #${workerId}] [${phase}] ${detail}`);
                 }
-                console.log(`[Worker #${workerId}] Session finished (${result.durationSeconds}s) | Progress: ${this.completedSessions}/${this.options.totalTargetSessions} (${Math.round((this.completedSessions / this.options.totalTargetSessions) * 100)}%)\n`);
+            });
+            this.completedSessions++;
+            if (result.success) {
+                this.successfulSessions++;
             }
-            catch (err) {
-                console.error(`[Worker #${workerId}] Error:`, err?.message || err);
-            }
-            finally {
-                if (browser) {
-                    try {
-                        await browser.close();
-                    }
-                    catch (ignored) { }
+            console.log(`[Worker #${workerId}] Finished (${result.durationSeconds}s) | Progress: ${this.completedSessions}/${this.options.totalTargetSessions} (${Math.round((this.completedSessions / this.options.totalTargetSessions) * 100)}%)\n`);
+        }
+        catch (err) {
+            console.error(`[Worker #${workerId}] Error:`, err?.message || err);
+            this.completedSessions++; // Increment so campaign progresses
+        }
+        finally {
+            if (browser) {
+                try {
+                    await browser.close();
                 }
-                this.activeWorkers--;
+                catch (ignored) { }
             }
-            // Inter-session human pause between 12 to 24 seconds per worker
-            if (this.isRunning && this.completedSessions < this.options.totalTargetSessions) {
-                const pauseSeconds = 12 + Math.floor(Math.random() * 12);
-                await new Promise((r) => setTimeout(r, pauseSeconds * 1000));
-            }
+            this.activeWorkers--;
         }
     }
 }

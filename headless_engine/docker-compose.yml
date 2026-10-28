@@ -10,8 +10,9 @@ services:
     shm_size: '2gb'
     environment:
       - TARGET_URL=https://yieldmatrix-crypto-calculator.vercel.app
-      - CONCURRENCY=8
-      - TARGET_SESSIONS=2000
+      - MIN_CONCURRENCY=3
+      - MAX_CONCURRENCY=5
+      - TARGET_SESSIONS=110
       - HEADLESS=false
       - PROXY_HOST=thehub.proxy-cheap.com
       - PROXY_PORT=8080

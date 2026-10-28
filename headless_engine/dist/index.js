@@ -17,16 +17,20 @@ function getArgValue(flag, defaultValue) {
     return defaultValue;
 }
 const targetUrl = getArgValue("--url", process.env.TARGET_URL || "https://yieldmatrix-crypto-calculator.vercel.app");
-const concurrency = isTest
+const minConcurrency = isTest
     ? 1
-    : parseInt(getArgValue("--workers", process.env.CONCURRENCY || "8"), 10);
+    : parseInt(getArgValue("--min", process.env.MIN_CONCURRENCY || "3"), 10);
+const maxConcurrency = isTest
+    ? 1
+    : parseInt(getArgValue("--max", process.env.MAX_CONCURRENCY || "5"), 10);
 const targetSessions = isTest
     ? 1
-    : parseInt(getArgValue("--target", process.env.TARGET_SESSIONS || "2000"), 10);
+    : parseInt(getArgValue("--target", process.env.TARGET_SESSIONS || "110"), 10);
 const isHeadless = process.env.HEADLESS === "true" || process.env.HEADLESS === "1";
 const orchestrator = new sessionOrchestrator_js_1.SessionOrchestrator({
     targetUrl,
-    concurrency,
+    minConcurrency,
+    maxConcurrency,
     totalTargetSessions: targetSessions,
     headless: isHeadless,
 });

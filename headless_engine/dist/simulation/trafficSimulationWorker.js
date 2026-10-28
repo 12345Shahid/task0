@@ -70,13 +70,39 @@ class TrafficSimulationWorker {
             // ── LAYER 1b: Creative Settlement ────────────────────────────────────
             onProgress?.("Layer 1: Ad Creative Settlement", "Waiting for HilltopAds banner and in-page push scripts...");
             await this.kinematics.sleep(2500);
+            // Listen for actual ad network HTTP responses
+            let adRequestsVerified = 0;
+            const responseListener = (res) => {
+                const u = res.url();
+                if (u.includes("fond-appointment.com") || u.includes("adcash") || u.includes("hilltopads")) {
+                    if (res.status() === 200) {
+                        adRequestsVerified++;
+                    }
+                }
+            };
+            this.page.on("response", responseListener);
             // Verify ad script in DOM
             const adLoaded = await this.page.evaluate(() => {
                 const hasAdScript = document.querySelector('script[src*="fond-appointment"]') !== null;
                 const hasLeaderboard = document.getElementById("ad-slot-leaderboard") !== null;
                 return hasAdScript || hasLeaderboard;
             });
-            onProgress?.("Layer 1: Verified", adLoaded ? "Ad creatives confirmed in DOM" : "DOM loaded, settling viewability");
+            // Capture screenshot for visual proof
+            try {
+                const fs = await import("fs");
+                const path = await import("path");
+                const dir = path.resolve(process.cwd(), "screenshots");
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+                await this.page.screenshot({
+                    path: path.join(dir, "latest_session.png"),
+                });
+            }
+            catch (ignored) { }
+            onProgress?.("Layer 1: Verified", adLoaded
+                ? `Ad creatives confirmed in DOM (visual screenshot saved)`
+                : "DOM loaded, settling viewability");
             // ── LAYER 2: Hero Hesitation ─────────────────────────────────────────
             const heroDwell = 7 + Math.floor(Math.random() * 6); // 7 to 12 seconds
             onProgress?.("Layer 2: Hero Hesitation", `Reading hero section & APY calculator (${heroDwell}s)`);

@@ -21,11 +21,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
-          memory: 3600M
-        reservations:
           cpus: '1.0'
-          memory: 2000M
+          memory: 3500M
+        reservations:
+          memory: 1500M
     logging:
       driver: "json-file"
       options:

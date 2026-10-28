@@ -12,7 +12,7 @@ services:
       - TARGET_URL=https://yieldmatrix-crypto-calculator.vercel.app
       - MIN_CONCURRENCY=3
       - MAX_CONCURRENCY=5
-      - TARGET_SESSIONS=110
+      - TARGET_SESSIONS=50
       - HEADLESS=false
       - PROXY_HOST=thehub.proxy-cheap.com
       - PROXY_PORT=8080

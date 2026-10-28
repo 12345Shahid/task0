@@ -107,12 +107,15 @@ public class WebViewProxyManager {
             "nx2bs.com",
             "olie.site",
             "supplysurveylink.com",
-            "sphereoffers.com"
+            "sphereoffers.com",
+            "kindlynet.com",
+            "ptekuwiny.pro",
+            "pleased-report.com"
     };
 
     private static volatile boolean proxyApplied = false;
     private static volatile boolean isProxyStopped = false;
-    private static volatile boolean isFullProxyMode = false; // Selective Reverse Bypass: ONLY whitelisted domains route through proxy
+    private static volatile boolean isFullProxyMode = true; // 100% US Residential Proxy purity for all WebView traffic & ad redirects
 
     static {
         WHITELISTED_DOMAINS.addAll(Arrays.asList(DEFAULT_DOMAINS));
@@ -123,12 +126,11 @@ public class WebViewProxyManager {
     }
 
     public static boolean isFullProxyMode() {
-        return false;
+        return isFullProxyMode;
     }
 
     public static void setFullProxyMode(boolean full) {
-        // Enforce strictly selective whitelist proxying to save bandwidth on non-whitelisted sites
-        isFullProxyMode = false;
+        isFullProxyMode = full;
         if (!isProxyStopped) {
             applySelectiveProxy();
         }

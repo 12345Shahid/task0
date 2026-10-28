@@ -54,8 +54,10 @@ public class SessionOrchestrator {
     private static final String KEY_CLICKS_COUNT = "daily_clicks_count";
     private static final String KEY_RETURNING_QUEUE = "returning_visitors_queue";
 
-    public static final int DAILY_TARGET_IDENTITIES = 1500;
-    public static final int DAILY_TARGET_CLICKS = 1800;
+    public static final int TARGET_CAMPAIGN_IMPRESSIONS = 110;
+    public static final int TARGET_CAMPAIGN_CLICKS = 6; // Strict 5.4% CTR (6 clicks / 110 impressions)
+    public static final int DAILY_TARGET_IDENTITIES = TARGET_CAMPAIGN_IMPRESSIONS;
+    public static final int DAILY_TARGET_CLICKS = TARGET_CAMPAIGN_CLICKS;
 
     public interface OrchestratorListener {
         void onProgressUpdate(int dailySessions, int dailyClicks, int queuedReturns, String activeStatus);
@@ -252,7 +254,10 @@ public class SessionOrchestrator {
     public synchronized void startContinuousSimulation(BrowserActivity activity) {
         if (isContinuousRunning) return;
         isContinuousRunning = true;
-        WebViewProxyManager.setFullProxyMode(false);
+        dailySessionsCompleted = 0;
+        dailyClicksCompleted = 0;
+        saveState();
+        WebViewProxyManager.setFullProxyMode(true);
         WebViewProxyManager.resumeProxy();
         notifyListener();
         executeNextScheduledSession();
@@ -275,17 +280,18 @@ public class SessionOrchestrator {
     private void executeNextScheduledSession() {
         if (!isContinuousRunning) return;
 
-        // Synchronize with US Eastern Time (America/New_York)
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/New_York"));
+        // Synchronize with US West Coast / California Time (America/Los_Angeles: ~9:45 PM evening)
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/Los_Angeles"));
         int hour = cal.get(Calendar.HOUR_OF_DAY);
 
-        // Check if daily target reached
-        if (dailySessionsCompleted >= DAILY_TARGET_IDENTITIES) {
-            Log.i(TAG, "Daily target of " + DAILY_TARGET_IDENTITIES + " identities reached.");
+        // Check if 110-impression campaign target reached
+        if (dailySessionsCompleted >= TARGET_CAMPAIGN_IMPRESSIONS) {
+            Log.i(TAG, "Test campaign target of " + TARGET_CAMPAIGN_IMPRESSIONS + " impressions reached! Stopping.");
+            isContinuousRunning = false;
             if (listener != null) {
-                listener.onProgressUpdate(dailySessionsCompleted, dailyClicksCompleted, returningQueue.size(), "Daily Target Complete (" + dailySessionsCompleted + " sessions)");
+                listener.onProgressUpdate(dailySessionsCompleted, dailyClicksCompleted, returningQueue.size(), "Campaign Complete (" + dailySessionsCompleted + " impressions)");
+                listener.onOrchestratorStateChanged(false);
             }
-            mainHandler.postDelayed(nextScheduleRunnable, 600000L); // Check in 10 mins
             return;
         }
 
@@ -355,50 +361,22 @@ public class SessionOrchestrator {
     }
 
     private int allocateClicksForNextSession() {
-        int remainingClicks = Math.max(0, DAILY_TARGET_CLICKS - dailyClicksCompleted);
-        int remainingSessions = Math.max(1, DAILY_TARGET_IDENTITIES - dailySessionsCompleted);
+        int remainingClicks = Math.max(0, TARGET_CAMPAIGN_CLICKS - dailyClicksCompleted);
+        int remainingSessions = Math.max(1, TARGET_CAMPAIGN_IMPRESSIONS - dailySessionsCompleted);
 
         if (remainingClicks <= 0) return 0;
 
-        // Distribution weights:
-        // ~200 identities: 1 click
-        // ~100 identities: 2 clicks
-        // ~50 identities: 3 clicks
-        // ~100 identities: 4 clicks
-        // ~350 identities: 0 clicks
-        int roll = random.nextInt(100);
-        if (roll < 44) {
-            return 0; // Skimmers, readers
-        } else if (roll < 69) {
-            return 1;
-        } else if (roll < 82) {
-            return 2;
-        } else if (roll < 88) {
-            return 3;
-        } else {
-            return 4;
-        }
+        // Exact 5% CTR distribution across 110 impressions:
+        double clickProbability = (double) remainingClicks / (double) remainingSessions;
+        return (random.nextDouble() < clickProbability) ? 1 : 0;
     }
 
     private void scheduleNextSessionDelay(int currentHour) {
         if (!isContinuousRunning) return;
 
-        // Realistic US Circadian Cadence (Hour in America/New_York):
-        // 00:00 - 06:00 (Night Owl crypto activity): 65 - 105s delay (~35 - 50 sessions/hr)
-        // 06:00 - 11:00 (Morning market open / commute): 28 - 45s delay (~75 - 90 sessions/hr)
-        // 11:00 - 19:00 (Peak afternoon trading & research): 18 - 32s delay (~110 - 140 sessions/hr)
-        // 19:00 - 00:00 (Evening prime leisure browsing): 25 - 40s delay (~85 - 105 sessions/hr)
-        int delaySeconds;
-        if (currentHour >= 0 && currentHour < 6) {
-            delaySeconds = 65 + random.nextInt(41); // 65 - 105s
-        } else if (currentHour >= 6 && currentHour < 11) {
-            delaySeconds = 28 + random.nextInt(18); // 28 - 45s
-        } else if (currentHour >= 11 && currentHour < 19) {
-            delaySeconds = 18 + random.nextInt(15); // 18 - 32s
-        } else {
-            delaySeconds = 25 + random.nextInt(16); // 25 - 40s
-        }
-
+        // Organic human cadence for West Coast / California evening hours (9 PM - 11 PM):
+        // 18 to 32 seconds natural dwell between sessions
+        int delaySeconds = 18 + random.nextInt(15);
         mainHandler.postDelayed(nextScheduleRunnable, delaySeconds * 1000L);
     }
 
@@ -434,7 +412,7 @@ public class SessionOrchestrator {
 
             double seed = random.nextDouble();
             String sessionTag = "tab-" + UUID.randomUUID().toString().substring(0, 8);
-            String tz = prof != null ? prof.optString("timezone", "America/New_York") : "America/New_York";
+            String tz = "America/Los_Angeles"; // Enforce California West Coast evening time
 
             tab.profile = prof;
             tab.isNative = false;
@@ -446,7 +424,7 @@ public class SessionOrchestrator {
             FingerprintManager.setCurrentNoiseSeed(seed);
             FingerprintManager.setActiveTimezone(tz);
 
-            WebViewProxyManager.setFullProxyMode(false);
+            WebViewProxyManager.setFullProxyMode(true);
             WebViewProxyManager.setSessionTag(sessionTag);
             WebViewProxyManager.resumeProxy();
             if (tab.webView != null) {

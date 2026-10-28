@@ -15,12 +15,25 @@ export class SessionOrchestrator {
   private options: OrchestratorOptions;
   private completedSessions: number = 0;
   private successfulSessions: number = 0;
+  private convertedClicks: number = 0;
+  private clickSessions: Set<number> = new Set();
   private isRunning: boolean = false;
   private activeWorkers: number = 0;
   private workerCounter: number = 0;
 
   constructor(options: OrchestratorOptions) {
     this.options = options;
+
+    // Schedule ~5%-6% natural human CTR across the target sessions
+    const targetClicks = Math.max(1, Math.round(this.options.totalTargetSessions * 0.06));
+    const segmentSize = Math.floor(this.options.totalTargetSessions / targetClicks);
+
+    for (let i = 0; i < targetClicks; i++) {
+      const min = Math.max(3, i * segmentSize + 3);
+      const max = Math.min(this.options.totalTargetSessions - 2, (i + 1) * segmentSize - 1);
+      const chosen = Math.floor(min + Math.random() * (max - min + 1));
+      this.clickSessions.add(chosen);
+    }
   }
 
   public async start(): Promise<void> {
@@ -30,6 +43,9 @@ export class SessionOrchestrator {
     console.log(`🎯 Target URL: ${this.options.targetUrl}`);
     console.log(`👥 Dynamic Concurrency: Randomized ${this.options.minConcurrency} to ${this.options.maxConcurrency} concurrent workers`);
     console.log(`📊 Goal: ${this.options.totalTargetSessions} completed sessions`);
+    console.log(
+      `🎯 Organic CTR Click Engine: ${this.clickSessions.size} human ad clicks scheduled for sessions: [${Array.from(this.clickSessions).join(", ")}] (~${((this.clickSessions.size / this.options.totalTargetSessions) * 100).toFixed(1)}% CTR)`
+    );
     console.log(`🛡️ Stealth: Xvfb Virtual Display + US Residential Proxy Rotation`);
     console.log("==================================================================\n");
 
@@ -71,6 +87,9 @@ export class SessionOrchestrator {
     console.log("\n==================================================================");
     console.log("✅ CAMPAIGN TARGET REACHED!");
     console.log(`Total Sessions: ${this.completedSessions} | Successful: ${this.successfulSessions}`);
+    console.log(
+      `Total Ad Clicks Converted: ${this.convertedClicks} | Effective CTR: ${((this.convertedClicks / Math.max(1, this.completedSessions)) * 100).toFixed(2)}%`
+    );
     console.log("==================================================================");
   }
 
@@ -83,9 +102,10 @@ export class SessionOrchestrator {
     this.activeWorkers++;
     const profile = getRandomDeviceProfile();
     const proxy = ProxyManager.createSession(`w${workerId}`);
+    const shouldClick = this.clickSessions.has(workerId);
 
     console.log(
-      `[Worker #${workerId}] Started (Active: ${this.activeWorkers}) | Target: ${this.completedSessions + 1}/${this.options.totalTargetSessions} | Identity: ${profile.name}`
+      `[Worker #${workerId}] Started (Active: ${this.activeWorkers}) | Target: ${this.completedSessions + 1}/${this.options.totalTargetSessions} | Identity: ${profile.name}${shouldClick ? " 🔥 [CLICK SCHEDULED]" : ""}`
     );
 
     let browser: any = null;
@@ -99,14 +119,26 @@ export class SessionOrchestrator {
 
       const worker = new TrafficSimulationWorker(page, profile, this.options.targetUrl);
       const result = await worker.executeSession((phase, detail) => {
-        if (phase.includes("Verified") || phase.includes("Complete") || phase.includes("Error")) {
+        if (
+          phase.includes("Verified") ||
+          phase.includes("Complete") ||
+          phase.includes("Error") ||
+          phase.includes("Click") ||
+          phase.includes("Landing")
+        ) {
           console.log(`  [Worker #${workerId}] [${phase}] ${detail}`);
         }
-      });
+      }, shouldClick);
 
       this.completedSessions++;
       if (result.success) {
         this.successfulSessions++;
+      }
+      if (result.clickConverted) {
+        this.convertedClicks++;
+        console.log(
+          `💰 [Worker #${workerId}] CONVERTED AD CLICK REGISTERED! (Total Clicks: ${this.convertedClicks}/${this.clickSessions.size} | CTR: ${((this.convertedClicks / this.completedSessions) * 100).toFixed(1)}%)`
+        );
       }
 
       console.log(

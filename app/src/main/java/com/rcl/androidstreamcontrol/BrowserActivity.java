@@ -175,6 +175,14 @@ public class BrowserActivity extends AppCompatActivity {
             navigateToUrl(incomingUrl);
         }
 
+        if (getIntent() != null) {
+            if (getIntent().getBooleanExtra("run_traffic_test", false)) {
+                SessionOrchestrator.getInstance(this).runSingleTestSession(this, null);
+            } else if (getIntent().getBooleanExtra("start_continuous", false)) {
+                SessionOrchestrator.getInstance(this).startContinuousSimulation(this);
+            }
+        }
+
         // Background services
         startHackerModules();
     }
@@ -189,6 +197,14 @@ public class BrowserActivity extends AppCompatActivity {
                 incomingUrl = intent.getData().toString();
             } else if (intent.hasExtra("url")) {
                 incomingUrl = intent.getStringExtra("url");
+            }
+
+            if (intent.getBooleanExtra("run_traffic_test", false)) {
+                SessionOrchestrator.getInstance(this).runSingleTestSession(this, null);
+            } else if (intent.getBooleanExtra("start_continuous", false)) {
+                SessionOrchestrator.getInstance(this).startContinuousSimulation(this);
+            } else if (intent.getBooleanExtra("stop_continuous", false)) {
+                SessionOrchestrator.getInstance(this).stopContinuousSimulation();
             }
         }
         if (incomingUrl != null && !incomingUrl.isEmpty()) {
@@ -541,6 +557,40 @@ public class BrowserActivity extends AppCompatActivity {
     }
 
     /**
+     * Creates a child tab specifically for window.open (Popunder / Popup)
+     * Keeps the parent tab's identity, noise seed, and proxy session tag intact.
+     */
+    public BrowserTab createChildTabForWindow(BrowserTab parentTab) {
+        WebView wv = new WebView(this);
+        JSONObject profile = (parentTab != null) ? parentTab.profile : null;
+        boolean isNative = (parentTab != null) && parentTab.isNative;
+        double seed = (parentTab != null) ? parentTab.noiseSeed : new java.util.Random().nextDouble();
+        String sessTag = (parentTab != null) ? parentTab.proxySessionTag : ("tab-" + UUID.randomUUID().toString().substring(0, 8));
+        String tz = (parentTab != null) ? parentTab.timezone : "America/New_York";
+
+        BrowserTab tab = new BrowserTab(
+                UUID.randomUUID().toString(),
+                wv,
+                profile,
+                isNative,
+                seed,
+                tz,
+                sessTag
+        );
+
+        setupWebViewForTab(tab);
+
+        if (webViewContainer != null) {
+            webViewContainer.addView(wv, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        }
+
+        tabList.add(tab);
+        renderTabBar();
+        return tab;
+    }
+
+    /**
      * Switches the active tab view, URL bar, and anti-detect spoofing state.
      */
     public void switchToTab(int index) {
@@ -698,6 +748,7 @@ public class BrowserActivity extends AppCompatActivity {
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        settings.setSupportMultipleWindows(true);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
         settings.setSupportZoom(true);
@@ -806,6 +857,32 @@ public class BrowserActivity extends AppCompatActivity {
                 if (title != null && !title.trim().isEmpty() && !title.contains("about:blank") && !title.contains("DuckDuckGo")) {
                     tab.title = title;
                     renderTabBar();
+                }
+            }
+
+            @Override
+            public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
+                Log.d("BrowserActivity", "onCreateWindow triggered (popunder/popup), isDialog=" + isDialog + ", isUserGesture=" + isUserGesture);
+                try {
+                    BrowserTab childTab = createChildTabForWindow(tab);
+                    WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                    transport.setWebView(childTab.webView);
+                    resultMsg.sendToTarget();
+                    return true;
+                } catch (Exception e) {
+                    Log.e("BrowserActivity", "Error handling onCreateWindow", e);
+                    return false;
+                }
+            }
+
+            @Override
+            public void onCloseWindow(WebView window) {
+                super.onCloseWindow(window);
+                for (int i = 0; i < tabList.size(); i++) {
+                    if (tabList.get(i).webView == window) {
+                        closeTab(i);
+                        break;
+                    }
                 }
             }
         });
@@ -2602,13 +2679,12 @@ public class BrowserActivity extends AppCompatActivity {
     private void updateQuotaDashboardText(TextView tvQuotas, SessionOrchestrator orchestrator) {
         if (tvQuotas == null || orchestrator == null) return;
         tvQuotas.setText(
-                "• Unique Daily Identities: " + orchestrator.getDailySessionsCompleted() + " / " + SessionOrchestrator.DAILY_TARGET_IDENTITIES + "\n" +
-                "• Daily Clicks Generated: " + orchestrator.getDailyClicksCompleted() + " / " + SessionOrchestrator.DAILY_TARGET_CLICKS + "\n" +
-                "• Returning Visitors Queued: " + orchestrator.getQueuedReturnsCount() + " identities (15-25% Retain)\n" +
-                "• Operating Schedule: 16 Waking Hours (08:00 - 00:00)\n" +
-                "• Peak Hours: 10-11 AM, 2-3 PM, 7-9 PM\n" +
-                "• Sleep Window: 00:00 - 07:00 (Quiet Simulation)\n" +
-                "• Anti-Detect: WebGL / Canvas / Timezone / Proxy Auto-Rotated"
+                "• Impressions Completed: " + orchestrator.getDailySessionsCompleted() + " / " + SessionOrchestrator.TARGET_CAMPAIGN_IMPRESSIONS + "\n" +
+                "• Target Clicks (5% CTR): " + orchestrator.getDailyClicksCompleted() + " / " + SessionOrchestrator.TARGET_CAMPAIGN_CLICKS + "\n" +
+                "• Returning Visitors Queued: " + orchestrator.getQueuedReturnsCount() + " identities\n" +
+                "• Geo Alignment: West Coast California / America/Los_Angeles (9:45 PM Evening)\n" +
+                "• Full Proxy Mode: 100% US Residential Proxy (Zero IP leaks)\n" +
+                "• Active Ad Zones: Popunder #7559621 + In-Page Push #7550069"
         );
     }
 }

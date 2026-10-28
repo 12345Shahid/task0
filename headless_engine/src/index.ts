@@ -30,7 +30,7 @@ const maxConcurrency = isTest
 
 const targetSessions = isTest
   ? 1
-  : parseInt(getArgValue("--target", process.env.TARGET_SESSIONS || "110"), 10);
+  : parseInt(getArgValue("--target", process.env.TARGET_SESSIONS || "50"), 10);
 
 const isHeadless = process.env.HEADLESS === "true" || process.env.HEADLESS === "1";
 

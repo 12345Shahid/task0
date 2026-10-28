@@ -3,8 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.KinematicsEngine = void 0;
 class KinematicsEngine {
     page;
+    currentMouseX;
+    currentMouseY;
     constructor(page) {
         this.page = page;
+        this.currentMouseX = 150 + Math.random() * 250;
+        this.currentMouseY = 150 + Math.random() * 250;
     }
     /**
      * Helper delay with randomized jitter
@@ -58,6 +62,40 @@ class KinematicsEngine {
         }
     }
     /**
+     * Dispatches human-like organic mouse movement along a Bézier curve followed by a realistic click
+     */
+    async humanClick(targetX, targetY) {
+        const startX = this.currentMouseX;
+        const startY = this.currentMouseY;
+        // Slight organic offset around target center (human never clicks dead center)
+        const destX = targetX + (Math.random() - 0.5) * 8;
+        const destY = targetY + (Math.random() - 0.5) * 8;
+        // Intermediate Bézier control point with organic lateral curve deviation
+        const controlX = (startX + destX) / 2 + (Math.random() - 0.5) * 100;
+        const controlY = (startY + destY) / 2 + (Math.random() - 0.5) * 100;
+        const steps = 18 + Math.floor(Math.random() * 8); // 18-25 steps
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            // Quadratic Bézier: B(t) = (1-t)^2 * P0 + 2(1-t)t * P1 + t^2 * P2
+            const x = Math.pow(1 - t, 2) * startX + 2 * (1 - t) * t * controlX + Math.pow(t, 2) * destX;
+            const y = Math.pow(1 - t, 2) * startY + 2 * (1 - t) * t * controlY + Math.pow(t, 2) * destY;
+            await this.page.mouse.move(x, y);
+            await this.sleep(12 + Math.random() * 12);
+        }
+        this.currentMouseX = destX;
+        this.currentMouseY = destY;
+        // Natural ocular micro-hesitation before depressing button (human visual confirmation)
+        await this.sleep(140 + Math.random() * 160);
+        // Mouse button down
+        await this.page.mouse.down({ button: "left" });
+        // Physical switch actuation hold duration (65ms to 125ms)
+        await this.sleep(65 + Math.random() * 60);
+        // Mouse button release
+        await this.page.mouse.up({ button: "left" });
+        // Post-click settling delay
+        await this.sleep(250 + Math.random() * 200);
+    }
+    /**
      * Dispatches an organic cursor movement along a Bézier curve towards an element
      */
     async moveMouseToElement(selector) {
@@ -72,7 +110,7 @@ class KinematicsEngine {
             const targetX = box.x + box.width * (0.3 + Math.random() * 0.4);
             const targetY = box.y + box.height * (0.3 + Math.random() * 0.4);
             // Generate intermediate control points for Bézier curve
-            const currentMouse = { x: box.x - 100, y: box.y - 100 };
+            const currentMouse = { x: this.currentMouseX, y: this.currentMouseY };
             const controlX = (currentMouse.x + targetX) / 2 + (Math.random() - 0.5) * 80;
             const controlY = (currentMouse.y + targetY) / 2 + (Math.random() - 0.5) * 80;
             const steps = 15;
@@ -83,6 +121,8 @@ class KinematicsEngine {
                 await this.page.mouse.move(x, y);
                 await this.sleep(15 + Math.random() * 10);
             }
+            this.currentMouseX = targetX;
+            this.currentMouseY = targetY;
             return true;
         }
         catch (e) {

@@ -89,8 +89,8 @@ public class TrafficSimulationEngine {
             kinematicsEngine.start();
         }
 
-        // Ensure selective residential proxy mode is active so whitelisted target traffic routes via US proxy
-        WebViewProxyManager.setFullProxyMode(false);
+        // Ensure full residential proxy mode is active so all target and ad traffic routes via US proxy
+        WebViewProxyManager.setFullProxyMode(true);
         WebViewProxyManager.resumeProxy();
 
         // Auto-whitelist portfolio domain

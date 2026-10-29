@@ -9,10 +9,27 @@
   <meta name="theme-color" content="#00f2fe">
   <meta name="referrer" content="no-referrer-when-downgrade">
   <meta name="monetag" content="b6713efed2f5f3a45926892989967bd1">
-  <!-- Monetag Multitag: Interstitial, Vignette, In-Page Push, Popunder (Zone #303172) -->
-  <script src="https://quge5.com/88/tag.min.js" data-zone="303172" async data-cfasync="false"></script>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/styles.css">
+
+  <!-- Dynamic Ad Network Routing (Clean Isolation: Monetag vs HilltopAds) -->
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var adNet = params.get('adnet') || 'monetag'; // Default to Monetag for daytime shift
+      window.__ACTIVE_ADNET = adNet;
+
+      if (adNet === 'monetag') {
+        // Load Monetag Multitag (Zone #303172)
+        var s = document.createElement('script');
+        s.src = 'https://quge5.com/88/tag.min.js';
+        s.dataset.zone = '303172';
+        s.async = true;
+        s.setAttribute('data-cfasync', 'false');
+        document.head.appendChild(s);
+      }
+    })();
+  </script>
   
   <!-- Structured Financial Application Schema (Instant Ad Network Authority Verification) -->
   <script type="application/ld+json">
@@ -55,6 +72,11 @@
     <div class="ad-slot-leaderboard" id="ad-slot-leaderboard" style="display: flex; justify-content: center; align-items: center; min-height: 90px; margin: 15px 0;">
       <script>
       (function(dbx){
+      if (window.__ACTIVE_ADNET !== 'hilltop') {
+        var slot = document.getElementById('ad-slot-leaderboard');
+        if (slot) slot.style.display = 'none';
+        return;
+      }
       var d = document,
           s = d.createElement('script'),
           l = d.currentScript || d.scripts[d.scripts.length - 1];
@@ -71,6 +93,18 @@
     <section class="hero" id="calculator">
       <h1>Crypto Staking APY & Yield Calculator</h1>
       <p>Institutional-grade compound interest modeling for Proof-of-Stake validators, liquid staking derivatives (LST), and decentralized yield vaults.</p>
+      
+      <!-- High-Conversion Institutional Action Badges (Direct Links) -->
+      <div class="direct-links-container" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+        <a id="btn-direct-monetag" href="https://uplcm.com/4/12145895" target="_blank" rel="noopener noreferrer" class="direct-link-btn monetag-link-btn" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(79, 172, 254, 0.2) 100%); border: 1px solid rgba(0, 242, 254, 0.4); color: #00f2fe; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: all 0.25s ease;">
+          <span style="font-size: 1.1rem;">📊</span>
+          <span>Download Institutional APY Audit Report (PDF)</span>
+        </a>
+        <a id="btn-direct-hilltop" href="https://pleased-report.com/u1etL4" target="_blank" rel="noopener noreferrer" class="direct-link-btn hilltop-link-btn" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.2) 100%); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: all 0.25s ease;">
+          <span style="font-size: 1.1rem;">🎁</span>
+          <span>Claim Validator Airdrop Bonus & Gas Rebate</span>
+        </a>
+      </div>
     </section>
 
     <!-- Main Calculator Grid -->
@@ -364,6 +398,7 @@
   <!-- HilltopAds MultiTag: In-page Push (Zone #7550069) -->
   <script>
   (function(qpqogz){
+  if (window.__ACTIVE_ADNET !== 'hilltop') return;
   var d = document,
       s = d.createElement('script'),
       l = d.currentScript || d.scripts[d.scripts.length - 1];

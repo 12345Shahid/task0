@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     shm_size: '2gb'
     environment:
-      - TARGET_URL=https://yieldmatrix-crypto-calculator.vercel.app
+      - TARGET_URL=https://yieldmatrix-crypto-calculator.vercel.app?adnet=monetag
       - MIN_CONCURRENCY=3
       - MAX_CONCURRENCY=5
       - TARGET_SESSIONS=50
@@ -17,7 +17,7 @@ services:
       - PROXY_HOST=thehub.proxy-cheap.com
       - PROXY_PORT=8080
       - PROXY_USER=Ltj8SfJpTEukyVn
-      - PROXY_PASS=0Pa7rRMzcehfeLR_country-US
+      - PROXY_PASS=0Pa7rRMzcehfeLR_country-AU
     volumes:
       - ./screenshots:/app/screenshots
     deploy:

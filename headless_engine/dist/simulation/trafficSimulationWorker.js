@@ -121,6 +121,22 @@ class TrafficSimulationWorker {
                         });
                     }
                 }
+                // 4. Direct Link High-Conversion Buttons (Monetag Audit vs HilltopAds Airdrop)
+                const activeNet = window.__ACTIVE_ADNET || "monetag";
+                const directBtnId = activeNet === "hilltop" ? "btn-direct-hilltop" : "btn-direct-monetag";
+                const directBtn = document.getElementById(directBtnId);
+                if (directBtn) {
+                    const rect = directBtn.getBoundingClientRect();
+                    if (rect.width > 50 && rect.height > 20) {
+                        found.push({
+                            x: rect.left + rect.width / 2,
+                            y: rect.top + rect.height / 2,
+                            width: rect.width,
+                            height: rect.height,
+                            type: activeNet === "hilltop" ? "HilltopAds SmartLink (Airdrop Bonus)" : "Monetag Direct Link (APY Audit)",
+                        });
+                    }
+                }
                 return found;
             });
             if (!candidates || candidates.length === 0) {
@@ -253,6 +269,19 @@ class TrafficSimulationWorker {
                                 onProgress?.("Layer 4: Click Converted", `Advertiser landing opened (${landingUrl.slice(0, 60)}...). Simulating dwell...`);
                                 await newPage.bringToFront();
                                 await newPage.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 15000 }).catch(() => { });
+                                // Capture visual proof of advertiser landing page
+                                try {
+                                    const fs = await import("fs");
+                                    const path = await import("path");
+                                    const dir = path.resolve(process.cwd(), "screenshots");
+                                    if (!fs.existsSync(dir)) {
+                                        fs.mkdirSync(dir, { recursive: true });
+                                    }
+                                    await newPage.screenshot({
+                                        path: path.join(dir, "latest_advertiser_landing.png"),
+                                    });
+                                }
+                                catch (snapErr) { }
                                 // Human dwelling on advertiser page (12 to 16 seconds)
                                 const dwellTime = 12 + Math.floor(Math.random() * 5);
                                 onProgress?.("Layer 4: Landing Dwell", `Engaging with advertiser landing page (${dwellTime}s)`);

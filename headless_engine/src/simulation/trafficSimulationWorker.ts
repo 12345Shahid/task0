@@ -183,9 +183,10 @@ export class TrafficSimulationWorker {
 
       // Verify ad script in DOM
       const adLoaded = await this.page.evaluate(() => {
-        const hasAdScript = document.querySelector('script[src*="fond-appointment"]') !== null;
+        const hasHilltop = document.querySelector('script[src*="fond-appointment"]') !== null;
         const hasLeaderboard = document.getElementById("ad-slot-leaderboard") !== null;
-        return hasAdScript || hasLeaderboard;
+        const hasMonetag = document.querySelector('script[src*="quge5.com"]') !== null;
+        return hasHilltop || hasLeaderboard || hasMonetag;
       });
 
       // Capture screenshot for visual proof

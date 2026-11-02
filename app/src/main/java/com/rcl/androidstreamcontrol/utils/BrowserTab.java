@@ -46,7 +46,7 @@ public class BrowserTab {
         this.profile = profile;
         this.isNative = isNative;
         this.noiseSeed = noiseSeed;
-        this.timezone = (timezone != null && !timezone.isEmpty()) ? timezone : (WebViewProxyManager.getLastResolvedTimezone() != null ? WebViewProxyManager.getLastResolvedTimezone() : "America/Chicago");
+        this.timezone = (timezone != null && !timezone.isEmpty()) ? timezone : (WebViewProxyManager.getLastResolvedTimezone() != null ? WebViewProxyManager.getLastResolvedTimezone() : "America/New_York");
         this.proxySessionTag = (proxySessionTag != null && !proxySessionTag.isEmpty()) ? proxySessionTag : "active";
         this.geoState = "US";
         this.geoCity = "";

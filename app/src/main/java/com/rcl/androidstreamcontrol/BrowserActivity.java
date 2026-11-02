@@ -157,11 +157,18 @@ public class BrowserActivity extends AppCompatActivity {
             FingerprintManager.setActiveTimezone(timezone);
             for (BrowserTab t : tabList) {
                 if (!t.isNative) {
+                    boolean tzChanged = (timezone != null && !timezone.equals(t.timezone));
                     t.timezone = timezone;
                     t.geoCity = city;
                     t.savedIp = ip;
                     if (t.webView != null) {
                         FingerprintManager.applyFingerprint(t.webView, t.profile, t.timezone, t.noiseSeed);
+                        if (tzChanged) {
+                            String curUrl = t.webView.getUrl();
+                            if (curUrl != null && !curUrl.isEmpty() && !curUrl.contains("about:blank") && !curUrl.equals(HOME_URL)) {
+                                t.webView.reload();
+                            }
+                        }
                     }
                 }
             }
@@ -540,7 +547,7 @@ public class BrowserActivity extends AppCompatActivity {
         double seed = new java.util.Random().nextDouble();
         String sessTag = "tab-" + UUID.randomUUID().toString().substring(0, 8);
         String liveProxyTz = WebViewProxyManager.getLastResolvedTimezone();
-        String tz = (liveProxyTz != null && !liveProxyTz.trim().isEmpty()) ? liveProxyTz.trim() : "America/Chicago";
+        String tz = (liveProxyTz != null && !liveProxyTz.trim().isEmpty()) ? liveProxyTz.trim() : "America/New_York";
 
         if (!isNative) {
             if (profile == null) {
@@ -559,10 +566,12 @@ public class BrowserActivity extends AppCompatActivity {
                 if (proxyTz != null && !proxyTz.trim().isEmpty()) {
                     tz = proxyTz.trim();
                 } else {
-                    tz = "America/Chicago";
+                    tz = "America/New_York";
                 }
             } else if (profile != null && profile.has("timezone")) {
-                tz = profile.optString("timezone", "America/Chicago");
+                tz = profile.optString("timezone", "America/New_York");
+            } else {
+                tz = "America/New_York";
             }
         }
 
@@ -959,6 +968,7 @@ public class BrowserActivity extends AppCompatActivity {
                             FingerprintManager.setActiveTimezone(tab.timezone);
                             runOnUiThread(() -> {
                                 FingerprintManager.applyFingerprint(view, tab.profile, tab.timezone, tab.noiseSeed);
+                                view.reload();
                             });
                         }
                     });
@@ -1657,9 +1667,9 @@ public class BrowserActivity extends AppCompatActivity {
                         CloudProfileLockManager.acquireLock(this, selName, "");
 
                         String proxyTz = WebViewProxyManager.getLastResolvedTimezone();
-                        String tzToUse = (proxyTz != null && !proxyTz.trim().isEmpty())
+                        String tzToUse = (WebViewProxyManager.isProxyActive() && proxyTz != null && !proxyTz.trim().isEmpty())
                                 ? proxyTz.trim()
-                                : selected.optString("timezone", "America/New_York");
+                                : (selected != null && selected.has("timezone") ? selected.optString("timezone", "America/New_York") : "America/New_York");
 
                         FingerprintManager.setCurrentProfile(selected);
                         FingerprintManager.setActiveTimezone(tzToUse);

@@ -1246,11 +1246,9 @@ public class DeviceProfilePool {
 
         String[] androidVersions = {"14; K", "13; K", "15; K"};
 
-        String[] timezones = {
-                "America/New_York", "America/Chicago", "America/Denver",
-                "America/Los_Angeles", "America/Phoenix", "America/Detroit",
-                "America/Indiana/Indianapolis"
-        };
+        String activeProxyTz = WebViewProxyManager.getLastResolvedTimezone();
+        String defaultTz = (activeProxyTz != null && !activeProxyTz.trim().isEmpty()) ? activeProxyTz.trim() : "America/New_York";
+        String[] timezones = { defaultTz };
 
         int count = list.size();
         int mIdx = 0;

@@ -35,7 +35,7 @@ public class FingerprintManager {
     private static final String TAG = "Fingerprint";
 
     private static volatile JSONObject currentProfile = null;
-    private static volatile String activeTimezone = "America/Chicago";
+    private static volatile String activeTimezone = "America/New_York";
     private static volatile double currentNoiseSeed = 0.42;
     private static volatile boolean isNativeProfile = false;
     private static volatile String sNativeUserAgent = null;
@@ -162,10 +162,10 @@ public class FingerprintManager {
             tz = proxyTz.trim();
         } else if (timezone != null && !timezone.isEmpty()) {
             tz = timezone.trim();
-        } else if (profile != null) {
-            tz = profile.optString("timezone", "America/Chicago");
+        } else if (profile != null && profile.has("timezone")) {
+            tz = profile.optString("timezone", "America/New_York");
         } else {
-            tz = "America/Chicago";
+            tz = "America/New_York";
         }
 
         String lang = profile != null ? profile.optString("language", "en-US") : "en-US";
@@ -1052,8 +1052,10 @@ public class FingerprintManager {
                 tz = proxyTz.trim();
             } else if (ipTimezone != null && !ipTimezone.trim().isEmpty()) {
                 tz = ipTimezone.trim();
+            } else if (profile != null && profile.has("timezone")) {
+                tz = profile.optString("timezone", "America/New_York");
             } else {
-                tz = profile.optString("timezone", "America/Chicago");
+                tz = "America/New_York";
             }
 
             String rawUa = profile.optString("userAgent", "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36");

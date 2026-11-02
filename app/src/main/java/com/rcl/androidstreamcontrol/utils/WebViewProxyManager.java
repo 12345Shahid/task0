@@ -68,18 +68,23 @@ public class WebViewProxyManager {
     private static volatile int proxyPort = 8080;
     private static volatile String proxyUser = "Ltj8SfJpTEukyVn";
     private static volatile String proxyPass = "0Pa7rRMzcehfeLR_country-US";
-    private static volatile String currentSessionTag = "active";
+    public static String generateNewSessionTag() {
+        return "sess" + Long.toHexString(System.currentTimeMillis()).substring(3) +
+                Integer.toHexString(new java.util.Random().nextInt(0xffff));
+    }
+
+    private static volatile String currentSessionTag = generateNewSessionTag();
     private static volatile String activeGeoState = "";
     private static volatile String activeGeoCity = "";
     private static final java.util.concurrent.atomic.AtomicLong sessionBytesTransferred = new java.util.concurrent.atomic.AtomicLong(0);
 
     // Live Geolocation & Timezone matching state (Dynamically synced 1:1 with active residential proxy)
-    private static volatile String lastResolvedIp = "148.170.97.99";
-    private static volatile String lastResolvedCity = "Livingston";
-    private static volatile String lastResolvedRegion = "Tennessee";
-    private static volatile String lastResolvedTimezone = "America/Chicago";
-    private static volatile double lastResolvedLat = 36.3888;
-    private static volatile double lastResolvedLon = -85.3194;
+    private static volatile String lastResolvedIp = "108.35.122.45";
+    private static volatile String lastResolvedCity = "New York";
+    private static volatile String lastResolvedRegion = "New York";
+    private static volatile String lastResolvedTimezone = "America/New_York";
+    private static volatile double lastResolvedLat = 40.7128;
+    private static volatile double lastResolvedLon = -74.0060;
 
     public static double getLastResolvedLat() {
         return lastResolvedLat;
@@ -200,16 +205,18 @@ public class WebViewProxyManager {
                 @Override
                 protected java.net.PasswordAuthentication getPasswordAuthentication() {
                     if (isProxyStopped) return null;
+                    String pass = getEffectiveProxyPass();
                     return new java.net.PasswordAuthentication(
                             proxyUser,
-                            proxyPass != null ? proxyPass.toCharArray() : new char[0]
+                            pass != null ? pass.toCharArray() : new char[0]
                     );
                 }
             });
+            String effPass = getEffectiveProxyPass();
             System.setProperty("http.proxyUser", proxyUser);
-            System.setProperty("http.proxyPassword", proxyPass != null ? proxyPass : "");
+            System.setProperty("http.proxyPassword", effPass != null ? effPass : "");
             System.setProperty("https.proxyUser", proxyUser);
-            System.setProperty("https.proxyPassword", proxyPass != null ? proxyPass : "");
+            System.setProperty("https.proxyPassword", effPass != null ? effPass : "");
             try {
                 System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
             } catch (Exception ignored) {}
@@ -221,10 +228,11 @@ public class WebViewProxyManager {
             try {
                 android.webkit.WebViewDatabase db = android.webkit.WebViewDatabase.getInstance(context);
                 if (db != null) {
-                    db.setHttpAuthUsernamePassword(proxyHost, "", proxyUser, proxyPass != null ? proxyPass : "");
-                    db.setHttpAuthUsernamePassword(proxyHost + ":" + proxyPort, "", proxyUser, proxyPass != null ? proxyPass : "");
+                    String effPass = getEffectiveProxyPass();
+                    db.setHttpAuthUsernamePassword(proxyHost, "", proxyUser, effPass != null ? effPass : "");
+                    db.setHttpAuthUsernamePassword(proxyHost + ":" + proxyPort, "", proxyUser, effPass != null ? effPass : "");
                     for (String d : WHITELISTED_DOMAINS) {
-                        db.setHttpAuthUsernamePassword(d, "", proxyUser, proxyPass != null ? proxyPass : "");
+                        db.setHttpAuthUsernamePassword(d, "", proxyUser, effPass != null ? effPass : "");
                     }
                 }
             } catch (Exception e) {
@@ -327,7 +335,7 @@ public class WebViewProxyManager {
 
     public static String getEffectiveProxyPass(boolean includeCity) {
         String base = (proxyPass != null) ? proxyPass : "0Pa7rRMzcehfeLR_country-US";
-        base = base.replaceAll("_(city|session|state)-[^_]+", "");
+        base = base.replaceAll("_(city|session|state|lifetime)-[^_]+", "");
         if (!base.contains("_country-")) {
             base = base + "_country-US";
         }
@@ -336,6 +344,12 @@ public class WebViewProxyManager {
             String cleanCity = formatCityParam(activeGeoCity);
             if (!cleanCity.isEmpty()) {
                 sb.append("_city-").append(cleanCity);
+            }
+        }
+        if (currentSessionTag != null && !currentSessionTag.trim().isEmpty()) {
+            String cleanSession = currentSessionTag.replaceAll("[^a-zA-Z0-9]", "");
+            if (!cleanSession.isEmpty()) {
+                sb.append("_session-").append(cleanSession);
             }
         }
         return sb.toString();
@@ -388,8 +402,8 @@ public class WebViewProxyManager {
     public static String rotateProxySession() {
         isProxyStopped = false;
         resetProxyCoolOff();
-        currentSessionTag = "cycle-" + Long.toHexString(System.currentTimeMillis()).substring(4);
-        Log.d(TAG, "Cycling proxy connection: " + currentSessionTag);
+        currentSessionTag = generateNewSessionTag();
+        Log.d(TAG, "Cycling proxy connection to fresh sticky 30-min session: " + currentSessionTag);
         resolveCurrentProxyGeo(null);
         return currentSessionTag;
     }
@@ -417,8 +431,8 @@ public class WebViewProxyManager {
                         auth.getBytes(StandardCharsets.UTF_8), android.util.Base64.NO_WRAP);
                 conn.setRequestProperty("Proxy-Authorization", "Basic " + encodedAuth);
                 conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                conn.setConnectTimeout(6000);
-                conn.setReadTimeout(6000);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
 
                 if (conn.getResponseCode() == 200) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -430,10 +444,10 @@ public class WebViewProxyManager {
                     JSONObject json = new JSONObject(sb.toString());
                     if ("success".equalsIgnoreCase(json.optString("status", ""))) {
                         ip = json.optString("query", null);
-                        city = json.optString("city", "Livingston");
-                        region = json.optString("regionName", "Tennessee");
+                        city = json.optString("city", "New York");
+                        region = json.optString("regionName", "New York");
                         country = json.optString("countryCode", "US");
-                        timezone = json.optString("timezone", "America/Chicago");
+                        timezone = json.optString("timezone", "America/New_York");
 
                         if (ip != null) lastResolvedIp = ip;
                         if (city != null) lastResolvedCity = city;
@@ -443,8 +457,8 @@ public class WebViewProxyManager {
                             FingerprintManager.setActiveTimezone(timezone);
                         }
                         if (json.has("lat") && json.has("lon")) {
-                            lastResolvedLat = json.optDouble("lat", 36.3834);
-                            lastResolvedLon = json.optDouble("lon", -85.3230);
+                            lastResolvedLat = json.optDouble("lat", 40.7128);
+                            lastResolvedLon = json.optDouble("lon", -74.0060);
                         }
                         Log.d(TAG, "Proxy IP resolved: " + lastResolvedIp + " [" + lastResolvedCity + ", " + lastResolvedTimezone + "]");
                     }
@@ -465,8 +479,8 @@ public class WebViewProxyManager {
                             auth.getBytes(StandardCharsets.UTF_8), android.util.Base64.NO_WRAP);
                     conn.setRequestProperty("Proxy-Authorization", "Basic " + encodedAuth);
                     conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
-                    conn.setConnectTimeout(6000);
-                    conn.setReadTimeout(6000);
+                    conn.setConnectTimeout(10000);
+                    conn.setReadTimeout(10000);
 
                     if (conn.getResponseCode() == 200) {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -478,10 +492,10 @@ public class WebViewProxyManager {
                         JSONObject json = new JSONObject(sb.toString());
                         if ("success".equalsIgnoreCase(json.optString("status", ""))) {
                             ip = json.optString("query", null);
-                            city = json.optString("city", "Dallas");
-                            region = json.optString("regionName", "Texas");
+                            city = json.optString("city", "New York");
+                            region = json.optString("regionName", "New York");
                             country = json.optString("countryCode", "US");
-                            timezone = json.optString("timezone", "America/Chicago");
+                            timezone = json.optString("timezone", "America/New_York");
 
                             if (ip != null) lastResolvedIp = ip;
                             if (city != null) lastResolvedCity = city;
@@ -491,19 +505,19 @@ public class WebViewProxyManager {
                                 FingerprintManager.setActiveTimezone(timezone);
                             }
                             if (json.has("lat") && json.has("lon")) {
-                                lastResolvedLat = json.optDouble("lat", 32.7767);
-                                lastResolvedLon = json.optDouble("lon", -96.7970);
+                                lastResolvedLat = json.optDouble("lat", 40.7128);
+                                lastResolvedLon = json.optDouble("lon", -74.0060);
                             }
                         }
                     }
                 } catch (Exception ignored) {}
             }
 
-            final String finalIp = (lastResolvedIp != null) ? lastResolvedIp : "148.170.97.99";
-            final String finalCity = (lastResolvedCity != null) ? lastResolvedCity : "Livingston";
-            final String finalRegion = (lastResolvedRegion != null) ? lastResolvedRegion : "Tennessee";
+            final String finalIp = (lastResolvedIp != null) ? lastResolvedIp : "108.35.122.45";
+            final String finalCity = (lastResolvedCity != null) ? lastResolvedCity : "New York";
+            final String finalRegion = (lastResolvedRegion != null) ? lastResolvedRegion : "New York";
             final String finalCountry = country;
-            final String finalTz = (lastResolvedTimezone != null) ? lastResolvedTimezone : "America/Chicago";
+            final String finalTz = (lastResolvedTimezone != null) ? lastResolvedTimezone : "America/New_York";
             final double finalLat = lastResolvedLat;
             final double finalLon = lastResolvedLon;
 

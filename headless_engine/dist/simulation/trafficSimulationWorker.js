@@ -162,15 +162,28 @@ class TrafficSimulationWorker {
                 fullUrl += (fullUrl.includes("?") ? "&" : "?") + source.utmParams;
             }
             onProgress?.("Layer 1: Arrival", `Arriving from ${source.name} -> ${fullUrl}`);
-            if (source.referrer) {
-                await this.page.setExtraHTTPHeaders({
-                    referer: source.referrer,
-                });
+            let navSuccess = false;
+            let lastErr = null;
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    await this.page.goto(fullUrl, {
+                        referer: source.referrer || undefined,
+                        waitUntil: "domcontentloaded",
+                        timeout: 45000,
+                    });
+                    navSuccess = true;
+                    break;
+                }
+                catch (err) {
+                    lastErr = err;
+                    if (attempt === 1) {
+                        await this.kinematics.sleep(2000);
+                    }
+                }
             }
-            await this.page.goto(fullUrl, {
-                waitUntil: "domcontentloaded",
-                timeout: 45000,
-            });
+            if (!navSuccess && lastErr) {
+                throw lastErr;
+            }
             // ── LAYER 1b: Creative Settlement ────────────────────────────────────
             onProgress?.("Layer 1: Ad Creative Settlement", "Waiting for HilltopAds banner and in-page push scripts...");
             await this.kinematics.sleep(2500);

@@ -59,6 +59,7 @@
         <activity
             android:name="com.rcl.androidstreamcontrol.BrowserActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme">
             <intent-filter>

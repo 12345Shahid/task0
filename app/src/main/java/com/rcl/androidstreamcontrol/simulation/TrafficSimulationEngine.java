@@ -220,9 +220,9 @@ public class TrafficSimulationEngine {
 
                 webView.evaluateJavascript(
                         "(function() {" +
-                        "  var hasInPage = document.querySelector('[class*=\"inpage\"], [id*=\"inpage\"], [class*=\"push\"], [id*=\"push\"]') !== null;" +
-                        "  var hasAdScript = document.querySelector('script[src*=\"fond-appointment\"], script[src*=\"hilltop\"]') !== null;" +
-                        "  var hasAdFrame = document.querySelector('iframe[src*=\"fond-appointment\"], iframe[src*=\"hilltop\"]') !== null;" +
+                        "  var hasInPage = document.querySelector('[class*=\"inpage\"], [id*=\"inpage\"], [class*=\"push\"], [id*=\"push\"], #btn-direct-advertica, #btn-export-audit, a[href*=\"data527.click\"]') !== null;" +
+                        "  var hasAdScript = document.querySelector('script[src*=\"advertica\"], script[src*=\"data527\"], script[src*=\"nap5k\"], script[src*=\"5gvci\"], script[src*=\"tag.min.js\"], script[src*=\"hilltop\"]') !== null;" +
+                        "  var hasAdFrame = document.querySelector('iframe[src*=\"advertica\"], iframe[src*=\"data527\"], iframe[src*=\"nap5k\"], iframe[src*=\"hilltop\"]') !== null;" +
                         "  return hasInPage || hasAdScript || hasAdFrame;" +
                         "})()",
                         value -> {
@@ -230,7 +230,7 @@ public class TrafficSimulationEngine {
                             boolean adFound = (value != null && "true".equalsIgnoreCase(value.trim()));
                             if (adFound) {
                                 notifyStatus("Layer 1: Ad Creative Verified",
-                                        "HilltopAds In-Page Push physically rendered in DOM", getElapsedSeconds());
+                                        "Advertica Monetization Assets physically verified in DOM", getElapsedSeconds());
                                 if (onVerified != null) onVerified.run();
                             } else if (checks[0] >= maxAdChecks) {
                                 notifyStatus("Layer 1: Settlement Complete",
@@ -409,6 +409,14 @@ public class TrafficSimulationEngine {
 
     private void handlePageExplorationCompleted() {
         if (!isRunning) return;
+
+        if (activity != null && activity.hasActiveAdTabDwelling()) {
+            notifyStatus("Ad Dwell Active", "Ad offer tab is actively loading/dwelling. Postponing session completion...", getElapsedSeconds());
+            handler.postDelayed(() -> {
+                handlePageExplorationCompleted();
+            }, 3000L);
+            return;
+        }
 
         // Check if visitor should bounce
         if (profile.shouldBounce && pagesVisited >= 1) {
@@ -604,11 +612,24 @@ public class TrafficSimulationEngine {
         notifyStatus("Layer 5: Projects Gallery",
                 "Navigating to Projects Gallery to inspect cards and external demos", getElapsedSeconds());
 
-        // Find project external links
+        // Find In-Page Push ad creative or Advertica direct smartlink
         String findProjectsJs = "(function() {" +
-                "  var links = document.querySelectorAll('.project-card a, .projects a, a[target=\"_blank\"], a[href^=\"http\"]');" +
+                "  var inpageAds = document.querySelectorAll('a[href*=\"data527.click\"], a[href*=\"advertica\"], #btn-direct-advertica, #btn-export-audit, [class*=\"inpage\"], [id*=\"inpage\"], [class*=\"push\"], [id*=\"push\"], #btn-direct-monetag, a[href*=\"uplcm\"]');" +
                 "  var results = [];" +
                 "  var currHost = window.location.hostname;" +
+                "  for (var k = 0; k < inpageAds.length; k++) {" +
+                "    var r = inpageAds[k].getBoundingClientRect();" +
+                "    if (r.width > 5 && r.height > 5 && r.top >= 0 && r.top <= window.innerHeight) {" +
+                "      results.push({" +
+                "        text: (inpageAds[k].innerText || 'Advertica Offer').trim()," +
+                "        href: inpageAds[k].href || ''," +
+                "        x: Math.round(r.left + r.width / 2)," +
+                "        y: Math.round(r.top + r.height / 2)" +
+                "      });" +
+                "    }" +
+                "  }" +
+                "  if (results.length > 0) return JSON.stringify(results);" +
+                "  var links = document.querySelectorAll('a[target=\"_blank\"], a[href^=\"http\"]');" +
                 "  for (var i = 0; i < links.length; i++) {" +
                 "    var href = links[i].href || '';" +
                 "    if (!href || href.startsWith('#') || href.startsWith('javascript:')) continue;" +
@@ -616,7 +637,7 @@ public class TrafficSimulationEngine {
                 "    if (isExternal || links[i].getAttribute('target') === '_blank') {" +
                 "      var rect = links[i].getBoundingClientRect();" +
                 "      results.push({" +
-                "        text: (links[i].innerText || 'Project Demo').trim()," +
+                "        text: (links[i].innerText || 'Offer').trim()," +
                 "        href: href," +
                 "        x: Math.round(rect.left + rect.width / 2)," +
                 "        y: Math.round(rect.top + rect.height / 2)" +
@@ -657,44 +678,24 @@ public class TrafficSimulationEngine {
         if (!isRunning || activity == null) return;
 
         clicksGenerated++;
-        notifyStatus("Layer 5: Tab 2 Active",
-                "Viewing external project for " + profile.externalTabStaySeconds + "s: " + externalUrl, getElapsedSeconds());
+
+        // Organic dwell distribution: 8-14s (40%), 16-25s (40%), 28-42s (20%)
+        int roll = random.nextInt(100);
+        final int stayDurationSeconds;
+        if (roll < 40) {
+            stayDurationSeconds = 8 + random.nextInt(7);
+        } else if (roll < 80) {
+            stayDurationSeconds = 16 + random.nextInt(10);
+        } else {
+            stayDurationSeconds = 28 + random.nextInt(15);
+        }
+
+        notifyStatus("Layer 5: Offer Tab Active",
+                "Opening offer (" + stayDurationSeconds + "s authentic dwell): " + externalUrl, getElapsedSeconds());
 
         activity.runOnUiThread(() -> {
             try {
-                // Open new isolated tab
-                BrowserTab newTab = activity.createNewTab(null, false);
-                if (newTab != null && newTab.webView != null) {
-                    newTab.webView.loadUrl(externalUrl);
-
-                    // Keep Tab 2 open for 10-20 seconds simulating reading project demo
-                    handler.postDelayed(() -> {
-                        if (!isRunning) return;
-
-                        notifyStatus("Layer 5: Closing Tab 2",
-                                "Reading finished. Closing external tab and returning to portfolio", getElapsedSeconds());
-
-                        activity.runOnUiThread(() -> {
-                            try {
-                                int tabCount = activity.getTabCount();
-                                if (tabCount > 1) {
-                                    activity.closeTab(tabCount - 1);
-                                }
-                            } catch (Exception ignored) {}
-
-                            // Post return browse: 10 to 15 seconds
-                            notifyStatus("Layer 5: Post-Return Browse",
-                                    "Browsing portfolio for " + profile.postReturnBrowseSeconds + "s more before departure",
-                                    getElapsedSeconds());
-
-                            handler.postDelayed(() -> {
-                                concludeSession(true, "Full 5-layer simulation successful. Total duration: "
-                                        + getElapsedSeconds() + "s | Clicks: " + clicksGenerated + " | Pages: " + pagesVisited);
-                            }, profile.postReturnBrowseSeconds * 1000L);
-                        });
-
-                    }, profile.externalTabStaySeconds * 1000L);
-                }
+                activity.createExternalAdTab(externalUrl, stayDurationSeconds);
             } catch (Exception e) {
                 Log.e(TAG, "Error opening external project tab", e);
                 concludeSession(true, "Session completed with external link interaction.");
@@ -703,6 +704,15 @@ public class TrafficSimulationEngine {
     }
 
     private void concludeSession(boolean success, String summary) {
+        if (activity != null && activity.hasActiveAdTabDwelling()) {
+            notifyStatus("Ad Dwell Active", "Ad offer tab is actively loading/dwelling. Waiting for authentic completion...", getElapsedSeconds());
+            Log.i(TAG, "Postponing concludeSession: child ad tab is actively dwelling.");
+            handler.postDelayed(() -> {
+                concludeSession(success, summary);
+            }, 3000L);
+            return;
+        }
+
         isRunning = false;
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
@@ -719,11 +729,11 @@ public class TrafficSimulationEngine {
     private String cleanJsJson(String raw) {
         if (raw == null) return "[]";
         raw = raw.trim();
-        if (raw.startsWith("\"") && raw.endsWith("\"")) {
+        if (raw.startsWith("\"") && raw.endsWith("\"") && raw.length() >= 2) {
             raw = raw.substring(1, raw.length() - 1);
             raw = raw.replace("\\\"", "\"").replace("\\\\", "\\");
         }
-        if (raw.isEmpty()) return "[]";
+        if (raw.isEmpty() || "null".equalsIgnoreCase(raw)) return "[]";
         return raw;
     }
 }

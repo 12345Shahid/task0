@@ -25,6 +25,12 @@ public class BrowserTab {
     public String geoState;
     public String geoCity;
     public String savedIp;
+    public boolean isChildAdTab = false;
+    public boolean hasLoaded = false;
+    public boolean isDwelling = false;
+    public long loadStartTime = 0;
+    public long pageFinishedTime = 0;
+    public int targetDwellSeconds = 12;
 
     public BrowserTab(
             String id,
@@ -40,7 +46,7 @@ public class BrowserTab {
         this.profile = profile;
         this.isNative = isNative;
         this.noiseSeed = noiseSeed;
-        this.timezone = (timezone != null && !timezone.isEmpty()) ? timezone : "America/New_York";
+        this.timezone = (timezone != null && !timezone.isEmpty()) ? timezone : (WebViewProxyManager.getLastResolvedTimezone() != null ? WebViewProxyManager.getLastResolvedTimezone() : "America/Chicago");
         this.proxySessionTag = (proxySessionTag != null && !proxySessionTag.isEmpty()) ? proxySessionTag : "active";
         this.geoState = "US";
         this.geoCity = "";

@@ -52,6 +52,7 @@ import com.rcl.androidstreamcontrol.utils.FingerprintManager;
 import com.rcl.androidstreamcontrol.utils.ProfileStorageManager;
 import com.rcl.androidstreamcontrol.utils.WebViewProxyManager;
 import com.rcl.androidstreamcontrol.utils.CloudProfileLockManager;
+import com.rcl.androidstreamcontrol.utils.HumanTouchKinematicsEngine;
 import com.rcl.androidstreamcontrol.simulation.SessionOrchestrator;
 import com.rcl.androidstreamcontrol.simulation.TrafficSimulationEngine;
 import com.rcl.androidstreamcontrol.simulation.BehaviorProfile;
@@ -143,12 +144,29 @@ public class BrowserActivity extends AppCompatActivity {
 
         // Capture the true physical device User-Agent for native profile restore
         defaultNativeUserAgent = WebSettings.getDefaultUserAgent(this);
+        FingerprintManager.setNativeUserAgent(defaultNativeUserAgent);
 
         // Initialize selective proxying (strictly 3 whitelisted domains) and sync with Supabase
         WebViewProxyManager.init(getApplicationContext());
         CloudProfileLockManager.init(getApplicationContext());
         DeviceProfilePool.init(getApplicationContext());
         ProfileStorageManager.syncFromCloud(getApplicationContext(), null);
+
+        // Immediately resolve residential proxy geo and timezone to prevent mismatch on early tab navigation
+        WebViewProxyManager.addGeoUpdateListener((ip, city, region, country, timezone, lat, lon) -> {
+            FingerprintManager.setActiveTimezone(timezone);
+            for (BrowserTab t : tabList) {
+                if (!t.isNative) {
+                    t.timezone = timezone;
+                    t.geoCity = city;
+                    t.savedIp = ip;
+                    if (t.webView != null) {
+                        FingerprintManager.applyFingerprint(t.webView, t.profile, t.timezone, t.noiseSeed);
+                    }
+                }
+            }
+        });
+        WebViewProxyManager.resolveCurrentProxyGeo(null);
 
         // Unconditionally default to the original physical device identity on cold launch / RAM purge
         // Spoofing and proxy tunneling only activate when explicitly picked by the user
@@ -180,6 +198,10 @@ public class BrowserActivity extends AppCompatActivity {
                 SessionOrchestrator.getInstance(this).runSingleTestSession(this, null);
             } else if (getIntent().getBooleanExtra("start_continuous", false)) {
                 SessionOrchestrator.getInstance(this).startContinuousSimulation(this);
+            } else if (getIntent().getBooleanExtra("manual_takeover", false)) {
+                SessionOrchestrator.getInstance(this).pauseForManualTakeover();
+            } else if (getIntent().getBooleanExtra("resume_takeover", false)) {
+                SessionOrchestrator.getInstance(this).resumeAfterManualTakeover(this);
             }
         }
 
@@ -205,6 +227,12 @@ public class BrowserActivity extends AppCompatActivity {
                 SessionOrchestrator.getInstance(this).startContinuousSimulation(this);
             } else if (intent.getBooleanExtra("stop_continuous", false)) {
                 SessionOrchestrator.getInstance(this).stopContinuousSimulation();
+            } else if (intent.getBooleanExtra("manual_takeover", false)) {
+                SessionOrchestrator.getInstance(this).pauseForManualTakeover();
+                Toast.makeText(this, "🛑 Automation Paused: Manual Takeover Active (Session preserved)", Toast.LENGTH_LONG).show();
+            } else if (intent.getBooleanExtra("resume_takeover", false)) {
+                SessionOrchestrator.getInstance(this).resumeAfterManualTakeover(this);
+                Toast.makeText(this, "▶ Resuming Automated Campaign", Toast.LENGTH_SHORT).show();
             }
         }
         if (incomingUrl != null && !incomingUrl.isEmpty()) {
@@ -511,20 +539,30 @@ public class BrowserActivity extends AppCompatActivity {
         JSONObject profile = specificProfile;
         double seed = new java.util.Random().nextDouble();
         String sessTag = "tab-" + UUID.randomUUID().toString().substring(0, 8);
-        String tz = "America/New_York";
+        String liveProxyTz = WebViewProxyManager.getLastResolvedTimezone();
+        String tz = (liveProxyTz != null && !liveProxyTz.trim().isEmpty()) ? liveProxyTz.trim() : "America/Chicago";
 
-        if (!isNative && profile == null) {
-            Set<String> used = new HashSet<>();
-            for (BrowserTab t : tabList) {
-                if (t.profile != null) {
-                    used.add(t.profile.optString("name", ""));
+        if (!isNative) {
+            if (profile == null) {
+                Set<String> used = new HashSet<>();
+                for (BrowserTab t : tabList) {
+                    if (t.profile != null) {
+                        used.add(t.profile.optString("name", ""));
+                    }
                 }
+                // Exclude profiles currently active on other devices
+                used.addAll(CloudProfileLockManager.getRemoteLockedProfileNames());
+                profile = DeviceProfilePool.getRandomAndroidProfileExcluding(used);
             }
-            // Exclude profiles currently active on other devices
-            used.addAll(CloudProfileLockManager.getRemoteLockedProfileNames());
-            profile = DeviceProfilePool.getRandomProfileExcluding(used);
-            if (profile != null) {
-                tz = profile.optString("timezone", "America/New_York");
+            if (WebViewProxyManager.isProxyActive()) {
+                String proxyTz = WebViewProxyManager.getLastResolvedTimezone();
+                if (proxyTz != null && !proxyTz.trim().isEmpty()) {
+                    tz = proxyTz.trim();
+                } else {
+                    tz = "America/Chicago";
+                }
+            } else if (profile != null && profile.has("timezone")) {
+                tz = profile.optString("timezone", "America/Chicago");
             }
         }
 
@@ -556,9 +594,34 @@ public class BrowserActivity extends AppCompatActivity {
         return tab;
     }
 
+    public boolean hasActiveAdTabDwelling() {
+        for (BrowserTab t : tabList) {
+            if (t.isChildAdTab && (!t.hasLoaded || t.isDwelling)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void closeAllSecondaryTabs() {
+        int i = tabList.size() - 1;
+        while (i > 0) {
+            BrowserTab t = tabList.get(i);
+            // Protect active ad tabs that are currently loading or dwelling
+            if (!t.isChildAdTab || (t.hasLoaded && !t.isDwelling)) {
+                closeTab(i);
+            }
+            i--;
+        }
+        if (tabList.size() == 1) {
+            switchToTab(0);
+        }
+    }
+
     /**
      * Creates a child tab specifically for window.open (Popunder / Popup)
      * Keeps the parent tab's identity, noise seed, and proxy session tag intact.
+     * Manages authentic dwell and lifecycle.
      */
     public BrowserTab createChildTabForWindow(BrowserTab parentTab) {
         WebView wv = new WebView(this);
@@ -577,6 +640,10 @@ public class BrowserActivity extends AppCompatActivity {
                 tz,
                 sessTag
         );
+        tab.isChildAdTab = true;
+        tab.loadStartTime = System.currentTimeMillis();
+        // Authentic human dwell: 8 to 16 seconds AFTER destination page finishes loading
+        tab.targetDwellSeconds = 8 + new java.util.Random().nextInt(9);
 
         setupWebViewForTab(tab);
 
@@ -587,6 +654,79 @@ public class BrowserActivity extends AppCompatActivity {
 
         tabList.add(tab);
         renderTabBar();
+        int childIndex = tabList.size() - 1;
+        switchToTab(childIndex);
+
+        // Safety fallback auto-close: only if page never loads after 45s
+        wv.postDelayed(() -> {
+            runOnUiThread(() -> {
+                for (int i = 0; i < tabList.size(); i++) {
+                    if (tabList.get(i).webView == wv) {
+                        Log.i("BrowserActivity", "Safety auto-close timeout reached for window.open ad tab.");
+                        closeTab(i);
+                        break;
+                    }
+                }
+            });
+        }, 45000L);
+
+        return tab;
+    }
+
+    /**
+     * Creates an external ad tab for Layer 5 Smartlinks and explicit CTA clicks.
+     */
+    public BrowserTab createExternalAdTab(String targetUrl, int dwellSeconds) {
+        WebView wv = new WebView(this);
+        BrowserTab parentTab = getActiveTab();
+        JSONObject profile = (parentTab != null) ? parentTab.profile : null;
+        boolean isNative = (parentTab != null) && parentTab.isNative;
+        double seed = (parentTab != null) ? parentTab.noiseSeed : new java.util.Random().nextDouble();
+        String sessTag = (parentTab != null) ? parentTab.proxySessionTag : ("tab-" + UUID.randomUUID().toString().substring(0, 8));
+        String tz = (parentTab != null) ? parentTab.timezone : "America/New_York";
+
+        BrowserTab tab = new BrowserTab(
+                UUID.randomUUID().toString(),
+                wv,
+                profile,
+                isNative,
+                seed,
+                tz,
+                sessTag
+        );
+        tab.isChildAdTab = true;
+        tab.targetDwellSeconds = Math.max(8, dwellSeconds);
+        tab.loadStartTime = System.currentTimeMillis();
+
+        setupWebViewForTab(tab);
+
+        if (webViewContainer != null) {
+            webViewContainer.addView(wv, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        }
+
+        tabList.add(tab);
+        renderTabBar();
+        int childIndex = tabList.size() - 1;
+        switchToTab(childIndex);
+
+        if (targetUrl != null && !targetUrl.isEmpty()) {
+            wv.loadUrl(targetUrl);
+        }
+
+        // Safety fallback auto-close: only if page never loads after 45s
+        wv.postDelayed(() -> {
+            runOnUiThread(() -> {
+                for (int i = 0; i < tabList.size(); i++) {
+                    if (tabList.get(i).webView == wv) {
+                        Log.i("BrowserActivity", "Safety auto-close timeout reached for external ad tab.");
+                        closeTab(i);
+                        break;
+                    }
+                }
+            });
+        }, 45000L);
+
         return tab;
     }
 
@@ -761,7 +901,12 @@ public class BrowserActivity extends AppCompatActivity {
             }
             FingerprintManager.resetToNative(wv);
         } else if (tab.profile != null) {
-            settings.setUserAgentString(tab.profile.optString("userAgent"));
+            String alignedUa = FingerprintManager.alignUserAgent(tab.profile.optString("userAgent"), tab.profile.optString("name"));
+            settings.setUserAgentString(alignedUa);
+            String liveTz = WebViewProxyManager.getLastResolvedTimezone();
+            if (liveTz != null && !liveTz.trim().isEmpty()) {
+                tab.timezone = liveTz.trim();
+            }
             FingerprintManager.applyFingerprint(wv, tab.profile, tab.timezone, tab.noiseSeed);
         }
 
@@ -806,6 +951,21 @@ public class BrowserActivity extends AppCompatActivity {
                 if (tab.isNative) {
                     FingerprintManager.resetToNative(view);
                 } else {
+                    WebViewProxyManager.checkAndSyncProxyGeo(false, (ip, city, region, country, timezone) -> {
+                        if (timezone != null && !timezone.trim().isEmpty() && !timezone.equals(tab.timezone)) {
+                            tab.timezone = timezone.trim();
+                            tab.geoCity = city;
+                            tab.savedIp = ip;
+                            FingerprintManager.setActiveTimezone(tab.timezone);
+                            runOnUiThread(() -> {
+                                FingerprintManager.applyFingerprint(view, tab.profile, tab.timezone, tab.noiseSeed);
+                            });
+                        }
+                    });
+                    String liveTz = WebViewProxyManager.getLastResolvedTimezone();
+                    if (liveTz != null && !liveTz.trim().isEmpty()) {
+                        tab.timezone = liveTz.trim();
+                    }
                     FingerprintManager.applyFingerprint(view, tab.profile, tab.timezone, tab.noiseSeed);
                 }
             }
@@ -826,9 +986,42 @@ public class BrowserActivity extends AppCompatActivity {
                 }
 
                 if (!tab.isNative) {
+                    String liveTz = WebViewProxyManager.getLastResolvedTimezone();
+                    if (liveTz != null && !liveTz.trim().isEmpty()) {
+                        tab.timezone = liveTz.trim();
+                    }
                     FingerprintManager.applyFingerprint(view, tab.profile, tab.timezone, tab.noiseSeed);
                 } else {
                     FingerprintManager.resetToNative(view);
+                }
+
+                // Child Ad Tab Dwell Controller:
+                // Only start dwelling when real destination page loads (not about:blank or empty)
+                if (tab.isChildAdTab && !tab.hasLoaded && url != null && !url.contains("about:blank") && !url.equals(HOME_URL)) {
+                    tab.hasLoaded = true;
+                    tab.isDwelling = true;
+                    tab.pageFinishedTime = System.currentTimeMillis();
+                    final int dwellSec = Math.max(8, tab.targetDwellSeconds);
+                    Log.i("BrowserActivity", "Child ad tab loaded destination: " + url + ". Starting " + dwellSec + "s authentic dwell.");
+
+                    final HumanTouchKinematicsEngine adKinematics = new HumanTouchKinematicsEngine(view);
+                    adKinematics.start();
+                    scheduleChildTabAdInteractions(view, adKinematics, dwellSec, 0);
+
+                    // Once dwell period completes, close tab cleanly and return to parent calculator
+                    view.postDelayed(() -> {
+                        runOnUiThread(() -> {
+                            adKinematics.stop();
+                            tab.isDwelling = false;
+                            Log.i("BrowserActivity", "Child ad tab dwell completed (" + dwellSec + "s). Safely closing tab and returning to calculator.");
+                            for (int i = 0; i < tabList.size(); i++) {
+                                if (tabList.get(i) == tab) {
+                                    closeTab(i);
+                                    break;
+                                }
+                            }
+                        });
+                    }, dwellSec * 1000L);
                 }
             }
 
@@ -861,6 +1054,11 @@ public class BrowserActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
+                callback.invoke(origin, true, false);
+            }
+
+            @Override
             public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
                 Log.d("BrowserActivity", "onCreateWindow triggered (popunder/popup), isDialog=" + isDialog + ", isUserGesture=" + isUserGesture);
                 try {
@@ -880,12 +1078,37 @@ public class BrowserActivity extends AppCompatActivity {
                 super.onCloseWindow(window);
                 for (int i = 0; i < tabList.size(); i++) {
                     if (tabList.get(i).webView == window) {
+                        BrowserTab t = tabList.get(i);
+                        // Prevent premature script window.close() from killing ad before dwell completes
+                        if (t.isChildAdTab && (!t.hasLoaded || t.isDwelling)) {
+                            Log.d("BrowserActivity", "Ignoring premature onCloseWindow from ad script while tab is dwelling.");
+                            return;
+                        }
                         closeTab(i);
                         break;
                     }
                 }
             }
         });
+    }
+
+    private void scheduleChildTabAdInteractions(final WebView wv, final HumanTouchKinematicsEngine kinematics, final int totalSec, final int step) {
+        if (wv == null || kinematics == null || step >= (totalSec / 3)) return;
+        long delay = 2500L + new java.util.Random().nextInt(2500);
+        wv.postDelayed(() -> {
+            runOnUiThread(() -> {
+                if (wv.getParent() == null) return;
+                int roll = new java.util.Random().nextInt(100);
+                if (roll < 75) {
+                    boolean scrollDown = (new java.util.Random().nextInt(100) < 80);
+                    kinematics.performNaturalScroll(scrollDown, 0.25f, () -> {
+                        scheduleChildTabAdInteractions(wv, kinematics, totalSec, step + 1);
+                    });
+                } else {
+                    scheduleChildTabAdInteractions(wv, kinematics, totalSec, step + 1);
+                }
+            });
+        }, delay);
     }
 
     /**
@@ -1336,24 +1559,61 @@ public class BrowserActivity extends AppCompatActivity {
      */
     private void showDeviceProfilePicker() {
         JSONArray allProfiles = DeviceProfilePool.getAllProfiles();
-        String[] names = new String[allProfiles.length()];
+        java.util.List<JSONObject> compatibleProfiles = new java.util.ArrayList<>();
+        String nativeVendor = DeviceProfilePool.getDetectedNativeGpuVendor();
+        if (nativeVendor == null || nativeVendor.isEmpty()) {
+            nativeVendor = "ARM";
+        }
+        boolean matchQualcomm = nativeVendor.toLowerCase().contains("qualcomm");
+        boolean matchArm = nativeVendor.toLowerCase().contains("arm");
+
         for (int i = 0; i < allProfiles.length(); i++) {
             JSONObject p = allProfiles.optJSONObject(i);
-            if (p != null) {
-                String pName = p.optString("name");
-                boolean isLocked = CloudProfileLockManager.isProfileLockedByOther(pName);
-                String lockSuffix = isLocked ? " 🔒 [In-Use on " + CloudProfileLockManager.getLockingDeviceName(pName) + "]" : "";
-                names[i] = (i + 1) + ". " + pName + " (" +
-                        p.optInt("screen_width") + "x" + p.optInt("screen_height") + ")" + lockSuffix;
-            } else {
-                names[i] = "Profile " + (i + 1);
+            if (p == null) continue;
+            String pName = p.optString("name", "").toLowerCase();
+            if (pName.contains("iphone") || pName.contains("ipad")) continue;
+            String vendor = p.optString("webgl_vendor", "");
+            if (vendor.isEmpty()) {
+                vendor = DeviceProfilePool.deduceWebglVendor(p.optString("name", ""));
+            }
+            if (matchArm && !vendor.equalsIgnoreCase("ARM")) continue;
+            if (matchQualcomm && !vendor.equalsIgnoreCase("Qualcomm")) continue;
+            compatibleProfiles.add(p);
+        }
+
+        if (compatibleProfiles.isEmpty()) {
+            for (int i = 0; i < allProfiles.length(); i++) {
+                JSONObject p = allProfiles.optJSONObject(i);
+                if (p == null) continue;
+                String pName = p.optString("name", "");
+                if (pName.toLowerCase().contains("iphone") || pName.toLowerCase().contains("ipad")) continue;
+                String vendor = p.optString("webgl_vendor", "");
+                if (vendor.isEmpty()) vendor = DeviceProfilePool.deduceWebglVendor(pName);
+                if (matchArm && vendor.equalsIgnoreCase("ARM")) {
+                    compatibleProfiles.add(p);
+                } else if (matchQualcomm && vendor.equalsIgnoreCase("Qualcomm")) {
+                    compatibleProfiles.add(p);
+                }
             }
         }
 
+        String[] names = new String[compatibleProfiles.size()];
+        for (int i = 0; i < compatibleProfiles.size(); i++) {
+            JSONObject p = compatibleProfiles.get(i);
+            String pName = p.optString("name");
+            String vendor = p.optString("webgl_vendor", "");
+            if (vendor.isEmpty()) vendor = DeviceProfilePool.deduceWebglVendor(pName);
+            boolean isLocked = CloudProfileLockManager.isProfileLockedByOther(pName);
+            String lockSuffix = isLocked ? " 🔒 [In-Use on " + CloudProfileLockManager.getLockingDeviceName(pName) + "]" : "";
+            names[i] = (i + 1) + ". " + pName + " [" + vendor + "] (" +
+                    p.optInt("screen_width") + "x" + p.optInt("screen_height") + ")" + lockSuffix;
+        }
+
+        String archTag = matchArm ? "ARM Mali" : (matchQualcomm ? "Snapdragon" : "Universal");
         new AlertDialog.Builder(this)
-                .setTitle("Select US Device Profile (" + allProfiles.length() + " Available)")
+                .setTitle("Select Compatible Profile (" + archTag + " - " + compatibleProfiles.size() + " Available)")
                 .setItems(names, (dialog, which) -> {
-                    JSONObject selected = DeviceProfilePool.getProfile(which);
+                    JSONObject selected = compatibleProfiles.get(which);
                     if (selected != null) {
                         String selName = selected.optString("name");
                         if (CloudProfileLockManager.isProfileLockedByOther(selName)) {
@@ -1367,18 +1627,25 @@ public class BrowserActivity extends AppCompatActivity {
                         }
                         CloudProfileLockManager.acquireLock(this, selName, "");
 
+                        String proxyTz = WebViewProxyManager.getLastResolvedTimezone();
+                        String tzToUse = (proxyTz != null && !proxyTz.trim().isEmpty())
+                                ? proxyTz.trim()
+                                : selected.optString("timezone", "America/New_York");
+
                         FingerprintManager.setCurrentProfile(selected);
-                        FingerprintManager.applyCurrentFingerprint(browser);
-                        saveProfileState(selected, false);
+                        FingerprintManager.setActiveTimezone(tzToUse);
 
                         if (curTab != null) {
                             curTab.profile = selected;
                             curTab.isNative = false;
                             curTab.noiseSeed = FingerprintManager.getCurrentNoiseSeed();
-                            curTab.timezone = selected.optString("timezone", "America/New_York");
+                            curTab.timezone = tzToUse;
                             curTab.title = selected.optString("name");
                             renderTabBar();
                         }
+
+                        FingerprintManager.applyFingerprint(browser, selected, tzToUse, curTab != null ? curTab.noiseSeed : FingerprintManager.getCurrentNoiseSeed());
+                        saveProfileState(selected, false);
 
                         WebViewProxyManager.resumeProxy(() -> {
                             if (browser != null) {
@@ -1398,22 +1665,37 @@ public class BrowserActivity extends AppCompatActivity {
      */
     private void rotateProxySessionAction() {
         String newTag = WebViewProxyManager.rotateProxySession();
-        Toast.makeText(this, "Rotating proxy session...\nSession: " + newTag, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Rotating proxy session...\nSyncing exit IP & timezone...", Toast.LENGTH_SHORT).show();
 
-        WebViewProxyManager.resumeProxy(() -> {
-            if (browser != null) {
-                browser.reload();
+        final java.util.concurrent.atomic.AtomicBoolean hasReloaded = new java.util.concurrent.atomic.AtomicBoolean(false);
+        Runnable onReady = () -> {
+            if (hasReloaded.compareAndSet(false, true)) {
+                String tz = FingerprintManager.getActiveTimezone();
+                try {
+                    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone(tz));
+                } catch (Exception ignored) {}
+                for (BrowserTab t : tabList) {
+                    t.timezone = tz;
+                }
+                saveProfileState(FingerprintManager.getCurrentProfile(), false);
+                if (browser != null) {
+                    FingerprintManager.applyCurrentFingerprint(browser);
+                }
+                WebViewProxyManager.resumeProxy(() -> {
+                    if (browser != null) {
+                        browser.reload();
+                    }
+                });
+                updateProxyBadgeUI(WebViewProxyManager.isUrlWhitelisted(browser != null ? browser.getUrl() : null));
+                Toast.makeText(BrowserActivity.this, "Proxy Exit Session: " + newTag + "\nTimezone: " + tz, Toast.LENGTH_SHORT).show();
             }
-        });
+        };
+
+        new Handler(Looper.getMainLooper()).postDelayed(onReady, 2500);
 
         WebViewProxyManager.resolveCurrentProxyGeo((ip, city, region, country, timezone) -> {
             FingerprintManager.setActiveTimezone(timezone);
-            saveProfileState(FingerprintManager.getCurrentProfile(), false);
-            if (browser != null) {
-                FingerprintManager.applyCurrentFingerprint(browser);
-            }
-            updateProxyBadgeUI(WebViewProxyManager.isUrlWhitelisted(browser != null ? browser.getUrl() : null));
-            Toast.makeText(BrowserActivity.this, "New Proxy Exit IP: " + ip + "\nTimezone: " + timezone, Toast.LENGTH_LONG).show();
+            onReady.run();
         });
     }
 
@@ -1472,42 +1754,55 @@ public class BrowserActivity extends AppCompatActivity {
 
         FingerprintManager.setCurrentProfile(newProfile);
         FingerprintManager.rotateNoiseSeed();
-        saveProfileState(newProfile, false);
-
-        BrowserTab curTab = getActiveTab();
-        if (curTab != null) {
-            curTab.profile = newProfile;
-            curTab.isNative = false;
-            curTab.noiseSeed = FingerprintManager.getCurrentNoiseSeed();
-            curTab.timezone = (newProfile != null) ? newProfile.optString("timezone", "America/New_York") : "America/New_York";
-            curTab.title = (newProfile != null) ? newProfile.optString("name", "Device") : "Device";
-            renderTabBar();
-        }
 
         // 5. Rotate residential proxy session tag (fresh exit IP)
         String newSession = WebViewProxyManager.rotateProxySession();
 
-        // 6. Apply new profile & fingerprint to WebView
-        FingerprintManager.applyCurrentFingerprint(browser);
-
         String name = (newProfile != null) ? newProfile.optString("name", isIos ? "Apple iPhone" : "Android Device") : "Device";
-        Toast.makeText(this, "⚡ 100% Clean " + (isIos ? "iOS" : "Android") + " Identity Created!\nDevice: " + name + "\nCookies & Cache Purged.", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "⚡ Generating clean " + (isIos ? "iOS" : "Android") + " identity...\nSyncing proxy exit IP...", Toast.LENGTH_SHORT).show();
 
-        // 7. Re-enable proxy and reload page strictly AFTER proxy override is confirmed
-        WebViewProxyManager.resumeProxy(() -> {
-            if (browser != null) {
-                browser.reload();
+        final java.util.concurrent.atomic.AtomicBoolean hasReloaded = new java.util.concurrent.atomic.AtomicBoolean(false);
+        Runnable onReady = () -> {
+            if (hasReloaded.compareAndSet(false, true)) {
+                String tzToUse = FingerprintManager.getActiveTimezone();
+                try {
+                    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone(tzToUse));
+                } catch (Exception ignored) {}
+                BrowserTab curTab = getActiveTab();
+                if (curTab != null) {
+                    curTab.profile = newProfile;
+                    curTab.isNative = false;
+                    curTab.noiseSeed = FingerprintManager.getCurrentNoiseSeed();
+                    curTab.timezone = tzToUse;
+                    curTab.title = (newProfile != null) ? newProfile.optString("name", "Device") : "Device";
+                    renderTabBar();
+                }
+                saveProfileState(newProfile, false);
+
+                // Apply new profile & fingerprint to WebView with resolved timezone
+                FingerprintManager.applyFingerprint(browser, newProfile, tzToUse, curTab != null ? curTab.noiseSeed : FingerprintManager.getCurrentNoiseSeed());
+
+                // Resume proxy and reload page strictly AFTER proxy & timezone alignment
+                WebViewProxyManager.resumeProxy(() -> {
+                    if (browser != null) {
+                        browser.reload();
+                    }
+                });
+
+                updateProxyBadgeUI(WebViewProxyManager.isUrlWhitelisted(browser != null ? browser.getUrl() : null));
+                Toast.makeText(BrowserActivity.this, "⚡ 100% Clean " + (isIos ? "iOS" : "Android") + " Identity Ready!\nDevice: " + name + "\nTimezone: " + tzToUse, Toast.LENGTH_LONG).show();
             }
-        });
+        };
 
-        // 8. Resolve new IP & auto-match timezone in background
+        // Safety timeout: 2500ms max waiting for geo lookup, then proceeds with fallback
+        new Handler(Looper.getMainLooper()).postDelayed(onReady, 2500);
+
         WebViewProxyManager.resolveCurrentProxyGeo((ip, city, region, country, timezone) -> {
             FingerprintManager.setActiveTimezone(timezone);
-            saveProfileState(newProfile, false);
-            if (browser != null) {
-                FingerprintManager.applyCurrentFingerprint(browser);
+            for (BrowserTab t : tabList) {
+                t.timezone = timezone;
             }
-            updateProxyBadgeUI(WebViewProxyManager.isUrlWhitelisted(browser != null ? browser.getUrl() : null));
+            onReady.run();
         });
     }
 
@@ -2261,7 +2556,8 @@ public class BrowserActivity extends AppCompatActivity {
         activeTab.profile = sp.profileJson;
         activeTab.isNative = sp.isNative;
         activeTab.noiseSeed = sp.noiseSeed;
-        activeTab.timezone = sp.timezone;
+        String liveTz = WebViewProxyManager.getLastResolvedTimezone();
+        activeTab.timezone = (liveTz != null && !liveTz.trim().isEmpty()) ? liveTz.trim() : sp.timezone;
         activeTab.geoState = sp.geoState;
         activeTab.geoCity = sp.city;
         activeTab.savedIp = sp.ip;
@@ -2273,7 +2569,7 @@ public class BrowserActivity extends AppCompatActivity {
         } else {
             FingerprintManager.setCurrentProfile(sp.profileJson, false);
             FingerprintManager.setCurrentNoiseSeed(sp.noiseSeed);
-            FingerprintManager.setActiveTimezone(sp.timezone);
+            FingerprintManager.setActiveTimezone(activeTab.timezone);
         }
 
         WebViewProxyManager.setSessionTag(sp.proxySessionTag);
@@ -2283,6 +2579,7 @@ public class BrowserActivity extends AppCompatActivity {
         // Request an IP from the same city and align timezone automatically
         WebViewProxyManager.resolveCurrentProxyGeo((ip, city, region, country, timezone) -> {
             FingerprintManager.setActiveTimezone(timezone);
+            activeTab.timezone = timezone;
             if (activeTab.webView != null) {
                 FingerprintManager.applyCurrentFingerprint(activeTab.webView);
                 updateProxyBadgeUI(WebViewProxyManager.isUrlWhitelisted(activeTab.webView.getUrl()));
@@ -2303,7 +2600,8 @@ public class BrowserActivity extends AppCompatActivity {
             if (sp.isNative && defaultNativeUserAgent != null) {
                 activeTab.webView.getSettings().setUserAgentString(defaultNativeUserAgent);
             } else if (sp.profileJson != null) {
-                activeTab.webView.getSettings().setUserAgentString(sp.profileJson.optString("userAgent"));
+                String alignedUa = FingerprintManager.alignUserAgent(sp.profileJson.optString("userAgent"), sp.profileJson.optString("name"));
+                activeTab.webView.getSettings().setUserAgentString(alignedUa);
             }
             activeTab.webView.loadUrl((sp.lastUrl != null && !sp.lastUrl.isEmpty()) ? sp.lastUrl : HOME_URL);
         }
@@ -2325,7 +2623,8 @@ public class BrowserActivity extends AppCompatActivity {
 
         BrowserTab newTab = createNewTab(sp.profileJson, sp.isNative);
         newTab.noiseSeed = sp.noiseSeed;
-        newTab.timezone = sp.timezone;
+        String liveTz = WebViewProxyManager.getLastResolvedTimezone();
+        newTab.timezone = (liveTz != null && !liveTz.trim().isEmpty()) ? liveTz.trim() : sp.timezone;
         newTab.geoState = sp.geoState;
         newTab.geoCity = sp.city;
         newTab.savedIp = sp.ip;
@@ -2338,6 +2637,7 @@ public class BrowserActivity extends AppCompatActivity {
 
         WebViewProxyManager.resolveCurrentProxyGeo((ip, city, region, country, timezone) -> {
             FingerprintManager.setActiveTimezone(timezone);
+            newTab.timezone = timezone;
             if (newTab.webView != null) {
                 FingerprintManager.applyCurrentFingerprint(newTab.webView);
                 updateProxyBadgeUI(WebViewProxyManager.isUrlWhitelisted(newTab.webView.getUrl()));

@@ -69,18 +69,46 @@ public class WebViewProxyManager {
     private static volatile String proxyUser = "Ltj8SfJpTEukyVn";
     private static volatile String proxyPass = "0Pa7rRMzcehfeLR_country-US";
     private static volatile String currentSessionTag = "active";
-    private static volatile String activeGeoState = "";
-    private static volatile String activeGeoCity = "";
+    private static volatile String activeGeoState = "TN";
+    private static volatile String activeGeoCity = "livingston";
     private static final java.util.concurrent.atomic.AtomicLong sessionBytesTransferred = new java.util.concurrent.atomic.AtomicLong(0);
 
-    // Live Geolocation & Timezone matching state
-    private static volatile String lastResolvedIp = "128.211.249.142";
-    private static volatile String lastResolvedCity = "West Lafayette";
-    private static volatile String lastResolvedRegion = "Indiana";
-    private static volatile String lastResolvedTimezone = "America/Indiana/Indianapolis";
+    // Live Geolocation & Timezone matching state (Aligned with active residential proxy)
+    private static volatile String lastResolvedIp = "148.170.97.99";
+    private static volatile String lastResolvedCity = "Livingston";
+    private static volatile String lastResolvedRegion = "Tennessee";
+    private static volatile String lastResolvedTimezone = "America/Chicago";
+    private static volatile double lastResolvedLat = 36.3834;
+    private static volatile double lastResolvedLon = -85.3230;
+
+    public static double getLastResolvedLat() {
+        return lastResolvedLat;
+    }
+
+    public static double getLastResolvedLon() {
+        return lastResolvedLon;
+    }
 
     public interface GeoCallback {
         void onResolved(String ip, String city, String region, String country, String timezone);
+    }
+
+    public interface GeoUpdateListener {
+        void onGeoUpdated(String ip, String city, String region, String country, String timezone, double lat, double lon);
+    }
+
+    private static final java.util.List<GeoUpdateListener> geoUpdateListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public static void addGeoUpdateListener(GeoUpdateListener listener) {
+        if (listener != null && !geoUpdateListeners.contains(listener)) {
+            geoUpdateListeners.add(listener);
+        }
+    }
+
+    public static void removeGeoUpdateListener(GeoUpdateListener listener) {
+        if (listener != null) {
+            geoUpdateListeners.remove(listener);
+        }
     }
 
     // Thread-safe set of domains that route through proxy
@@ -110,7 +138,17 @@ public class WebViewProxyManager {
             "sphereoffers.com",
             "kindlynet.com",
             "ptekuwiny.pro",
-            "pleased-report.com"
+            "pleased-report.com",
+            "nap5k.com",
+            "5gvci.com",
+            "uplcm.com",
+            "my.rtmark.net",
+            "jhnwr.com",
+            "data527.click",
+            "advertica.com",
+            "6ohwb.click",
+            "comtamdigital.com",
+            "o-oo.ooo"
     };
 
     private static volatile boolean proxyApplied = false;
@@ -294,8 +332,9 @@ public class WebViewProxyManager {
             base = base + "_country-US";
         }
         StringBuilder sb = new StringBuilder(base);
-        if (includeCity && activeGeoCity != null && !activeGeoCity.trim().isEmpty()) {
-            String cleanCity = formatCityParam(activeGeoCity);
+        if (includeCity) {
+            String cityToUse = (activeGeoCity != null && !activeGeoCity.trim().isEmpty()) ? activeGeoCity : "newyork";
+            String cleanCity = formatCityParam(cityToUse);
             if (!cleanCity.isEmpty()) {
                 sb.append("_city-").append(cleanCity);
             }
@@ -317,6 +356,23 @@ public class WebViewProxyManager {
 
     public static String getLastResolvedTimezone() {
         return lastResolvedTimezone;
+    }
+
+    private static volatile long sLastGeoCheckTime = 0;
+
+    /**
+     * Checks and syncs proxy geolocation with a 10-second throttle to keep exit IP and timezone fresh.
+     */
+    public static void checkAndSyncProxyGeo(boolean force, GeoCallback callback) {
+        long now = System.currentTimeMillis();
+        if (!force && (now - sLastGeoCheckTime < 10000)) {
+            if (callback != null) {
+                callback.onResolved(lastResolvedIp, lastResolvedCity, lastResolvedRegion, "US", lastResolvedTimezone);
+            }
+            return;
+        }
+        sLastGeoCheckTime = now;
+        resolveCurrentProxyGeo(callback);
     }
 
     /**
@@ -366,10 +422,10 @@ public class WebViewProxyManager {
                     JSONObject json = new JSONObject(sb.toString());
                     if ("success".equalsIgnoreCase(json.optString("status", ""))) {
                         ip = json.optString("query", null);
-                        city = json.optString("city", "West Lafayette");
-                        region = json.optString("regionName", "Indiana");
+                        city = json.optString("city", "Livingston");
+                        region = json.optString("regionName", "Tennessee");
                         country = json.optString("countryCode", "US");
-                        timezone = json.optString("timezone", "America/Indiana/Indianapolis");
+                        timezone = json.optString("timezone", "America/Chicago");
 
                         if (ip != null) lastResolvedIp = ip;
                         if (city != null) lastResolvedCity = city;
@@ -377,6 +433,10 @@ public class WebViewProxyManager {
                         if (timezone != null) {
                             lastResolvedTimezone = timezone;
                             FingerprintManager.setActiveTimezone(timezone);
+                        }
+                        if (json.has("lat") && json.has("lon")) {
+                            lastResolvedLat = json.optDouble("lat", 36.3834);
+                            lastResolvedLon = json.optDouble("lon", -85.3230);
                         }
                         Log.d(TAG, "Proxy IP resolved: " + lastResolvedIp + " [" + lastResolvedCity + ", " + lastResolvedTimezone + "]");
                     }
@@ -410,10 +470,10 @@ public class WebViewProxyManager {
                         JSONObject json = new JSONObject(sb.toString());
                         if ("success".equalsIgnoreCase(json.optString("status", ""))) {
                             ip = json.optString("query", null);
-                            city = json.optString("city", "New York");
-                            region = json.optString("regionName", "New York");
+                            city = json.optString("city", "Livingston");
+                            region = json.optString("regionName", "Tennessee");
                             country = json.optString("countryCode", "US");
-                            timezone = json.optString("timezone", "America/New_York");
+                            timezone = json.optString("timezone", "America/Chicago");
 
                             if (ip != null) lastResolvedIp = ip;
                             if (city != null) lastResolvedCity = city;
@@ -422,22 +482,33 @@ public class WebViewProxyManager {
                                 lastResolvedTimezone = timezone;
                                 FingerprintManager.setActiveTimezone(timezone);
                             }
+                            if (json.has("lat") && json.has("lon")) {
+                                lastResolvedLat = json.optDouble("lat", 36.3834);
+                                lastResolvedLon = json.optDouble("lon", -85.3230);
+                            }
                         }
                     }
                 } catch (Exception ignored) {}
             }
 
-            final String finalIp = (lastResolvedIp != null) ? lastResolvedIp : "Active";
-            final String finalCity = (lastResolvedCity != null) ? lastResolvedCity : "US";
-            final String finalRegion = (lastResolvedRegion != null) ? lastResolvedRegion : "";
+            final String finalIp = (lastResolvedIp != null) ? lastResolvedIp : "148.170.97.99";
+            final String finalCity = (lastResolvedCity != null) ? lastResolvedCity : "Livingston";
+            final String finalRegion = (lastResolvedRegion != null) ? lastResolvedRegion : "Tennessee";
             final String finalCountry = country;
-            final String finalTz = (lastResolvedTimezone != null) ? lastResolvedTimezone : "America/New_York";
+            final String finalTz = (lastResolvedTimezone != null) ? lastResolvedTimezone : "America/Chicago";
+            final double finalLat = lastResolvedLat;
+            final double finalLon = lastResolvedLon;
 
-            if (callback != null) {
-                new Handler(Looper.getMainLooper()).post(() -> {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                for (GeoUpdateListener l : geoUpdateListeners) {
+                    try {
+                        l.onGeoUpdated(finalIp, finalCity, finalRegion, finalCountry, finalTz, finalLat, finalLon);
+                    } catch (Exception ignored) {}
+                }
+                if (callback != null) {
                     callback.onResolved(finalIp, finalCity, finalRegion, finalCountry, finalTz);
-                });
-            }
+                }
+            });
         }).start();
     }
 
@@ -626,21 +697,11 @@ public class WebViewProxyManager {
 
     public static boolean isUrlWhitelisted(String url) {
         if (isProxyStopped) return false;
-        if (isFullProxyMode) return true;
-        return isDomainWhitelisted(url);
+        return true;
     }
 
     public static boolean isDomainWhitelisted(String url) {
-        if (url == null || url.isEmpty()) return false;
-        String host = extractHost(url);
-        if (host == null || host.isEmpty()) return false;
-
-        for (String allowed : WHITELISTED_DOMAINS) {
-            if (host.equals(allowed) || host.endsWith("." + allowed)) {
-                return true;
-            }
-        }
-        return false;
+        return true;
     }
 
     private static String extractHost(String url) {

@@ -54,8 +54,8 @@ public class SessionOrchestrator {
     private static final String KEY_CLICKS_COUNT = "daily_clicks_count";
     private static final String KEY_RETURNING_QUEUE = "returning_visitors_queue";
 
-    public static final int TARGET_CAMPAIGN_IMPRESSIONS = 110;
-    public static final int TARGET_CAMPAIGN_CLICKS = 6; // Strict 5.4% CTR (6 clicks / 110 impressions)
+    public static final int TARGET_CAMPAIGN_IMPRESSIONS = 197;
+    public static final int TARGET_CAMPAIGN_CLICKS = 11; // ~5.6% natural CTR (11 clicks / 197 impressions)
     public static final int DAILY_TARGET_IDENTITIES = TARGET_CAMPAIGN_IMPRESSIONS;
     public static final int DAILY_TARGET_CLICKS = TARGET_CAMPAIGN_CLICKS;
 
@@ -263,11 +263,54 @@ public class SessionOrchestrator {
         executeNextScheduledSession();
     }
 
+    private volatile boolean isManualTakeover = false;
+
+    public boolean isManualTakeover() {
+        return isManualTakeover;
+    }
+
+    /**
+     * Pauses the automated traffic engine so the user can interact directly on screen
+     * (e.g. fill lead forms, perform CPA conversion, verify advertiser offers).
+     * Preserves the active proxy, session cookies, and current tab without disruption.
+     */
+    public synchronized void pauseForManualTakeover() {
+        isManualTakeover = true;
+        isContinuousRunning = false;
+        mainHandler.removeCallbacks(nextScheduleRunnable);
+        if (activeEngine != null && activeEngine.isRunning()) {
+            activeEngine.stop();
+            activeEngine = null;
+        }
+        // NOTE: Intentionally do NOT call WebViewProxyManager.stopProxy()!
+        // The user's active session and proxy identity must remain alive.
+        Log.i(TAG, "Manual takeover activated: Automated schedule paused, proxy and session preserved.");
+        if (listener != null) {
+            listener.onProgressUpdate(dailySessionsCompleted, dailyClicksCompleted, returningQueue.size(), "🛑 Paused (Manual Takeover Active)");
+            listener.onOrchestratorStateChanged(false);
+        }
+    }
+
+    /**
+     * Resumes the continuous simulation schedule after manual takeover is completed.
+     */
+    public synchronized void resumeAfterManualTakeover(BrowserActivity activity) {
+        isManualTakeover = false;
+        isContinuousRunning = true;
+        Log.i(TAG, "Manual takeover released: Resuming automated campaign.");
+        if (listener != null) {
+            listener.onProgressUpdate(dailySessionsCompleted, dailyClicksCompleted, returningQueue.size(), "🟢 Resumed (Continuous Engine Active)");
+            listener.onOrchestratorStateChanged(true);
+        }
+        mainHandler.postDelayed(nextScheduleRunnable, 3000L);
+    }
+
     /**
      * Stops continuous traffic orchestration and cancels pending sessions.
      */
     public synchronized void stopContinuousSimulation() {
         isContinuousRunning = false;
+        isManualTakeover = false;
         mainHandler.removeCallbacks(nextScheduleRunnable);
         if (activeEngine != null && activeEngine.isRunning()) {
             activeEngine.stop();
@@ -315,6 +358,13 @@ public class SessionOrchestrator {
             mainHandler.postDelayed(nextScheduleRunnable, 15000L);
             return;
         }
+
+        // Clean up any lingering popup/redirect tabs so every session starts fresh on Tab 0
+        activity.runOnUiThread(() -> {
+            try {
+                activity.closeAllSecondaryTabs();
+            } catch (Exception ignored) {}
+        });
 
         BrowserTab activeTab = activity.getActiveTab();
         if (activeTab == null || activeTab.webView == null) {

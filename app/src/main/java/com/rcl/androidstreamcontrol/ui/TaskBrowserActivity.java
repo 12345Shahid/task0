@@ -115,9 +115,13 @@ public class TaskBrowserActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setLoadWithOverviewMode(true);
-        settings.setUserAgentString(currentProfile != null
-            ? currentProfile.optString("userAgent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36")
-            : "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36");
+        if (FingerprintManager.getNativeUserAgent() == null) {
+            FingerprintManager.setNativeUserAgent(WebSettings.getDefaultUserAgent(this));
+        }
+        String rawUa = currentProfile != null
+            ? currentProfile.optString("userAgent", "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36")
+            : "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36";
+        settings.setUserAgentString(FingerprintManager.alignUserAgent(rawUa, currentProfile != null ? currentProfile.optString("name") : null));
 
         webView.setWebViewClient(new WebViewClient() {
             @Override

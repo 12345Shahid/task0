@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Anti-Detect Module — Dynamic Device Profile Pool
@@ -291,511 +293,523 @@ public class DeviceProfilePool {
          "Mozilla/5.0 (Linux; Android 14; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "ARM", "Mali-G715"},
         {"Pixel 9 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "ARM", "Mali-G715"},
         {"Pixel 9 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "ARM", "Mali-G715"},
         {"Pixel 9",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "ARM", "Mali-G715"},
         {"Pixel 9",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "ARM", "Mali-G715"},
         {"Pixel 9",
          "Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "ARM", "Mali-G715"},
         {"Pixel 8 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8",
          "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8a",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8a",
          "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 8a",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 8a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC10"},
         {"Pixel 7 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7 Pro",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7 Pro",
          "Mozilla/5.0 (Linux; Android 14; Pixel 7 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7a",
          "Mozilla/5.0 (Linux; Android 14; Pixel 7a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7a",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 7a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 7a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 7a",
-         "Mozilla/5.0 (Linux; Android 14; Pixel 7a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel 7a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel Fold",
-         "Mozilla/5.0 (Linux; Android 14; Pixel Fold) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel Fold) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel Fold",
-         "Mozilla/5.0 (Linux; Android 14; Pixel Fold) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; Pixel Fold) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel Fold",
          "Mozilla/5.0 (Linux; Android 14; Pixel Fold) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "ARM", "Mali-G710"},
         {"Pixel 6 Pro",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 6 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 6 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 6 Pro",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 6 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 6 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 6 Pro",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 6 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 6 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 6",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 6",
          "Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 6",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 6a",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 6a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 6a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 6a",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 6a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 6a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 6a",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 6a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 6a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "ARM", "Mali-G78"},
         {"Pixel 5",
          "Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 620"},
         {"Pixel 5",
-         "Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 620"},
         {"Pixel 5a",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 5a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 5a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 620"},
         {"Pixel 5a",
-         "Mozilla/5.0 (Linux; Android 13; Pixel 5a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; Pixel 5a) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 620"},
         {"Samsung Galaxy S24 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24 Ultra",
          "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24+",
-         "Mozilla/5.0 (Linux; Android 14; SM-S926B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S926B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24+",
-         "Mozilla/5.0 (Linux; Android 14; SM-S926B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S926B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24+",
          "Mozilla/5.0 (Linux; Android 14; SM-S926B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24",
-         "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24",
-         "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S24",
-         "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S921B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Samsung Galaxy S23 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23 Ultra",
          "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23+",
-         "Mozilla/5.0 (Linux; Android 13; SM-S916B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S916B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23+",
-         "Mozilla/5.0 (Linux; Android 13; SM-S916B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S916B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23+",
          "Mozilla/5.0 (Linux; Android 13; SM-S916B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23",
-         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23",
-         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23",
-         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy S23 FE",
-         "Mozilla/5.0 (Linux; Android 13; SM-S711B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S711B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S23 FE",
          "Mozilla/5.0 (Linux; Android 13; SM-S711B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S23 FE",
-         "Mozilla/5.0 (Linux; Android 13; SM-S711B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S711B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S22 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S22 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S22 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S22+",
          "Mozilla/5.0 (Linux; Android 12; SM-S906B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S22+",
-         "Mozilla/5.0 (Linux; Android 12; SM-S906B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; SM-S906B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S22",
-         "Mozilla/5.0 (Linux; Android 12; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S22",
-         "Mozilla/5.0 (Linux; Android 12; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S22",
-         "Mozilla/5.0 (Linux; Android 12; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; SM-S901B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy S21 Ultra",
          "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"Samsung Galaxy S21 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"Samsung Galaxy S21 FE",
-         "Mozilla/5.0 (Linux; Android 13; SM-G990B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-G990B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"Samsung Galaxy S21 FE",
-         "Mozilla/5.0 (Linux; Android 13; SM-G990B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-G990B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"Samsung Galaxy S21 FE",
-         "Mozilla/5.0 (Linux; Android 13; SM-G990B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-G990B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"Samsung Galaxy S21",
          "Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"Samsung Galaxy S21",
-         "Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"Samsung Galaxy Note 20 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; SM-N986B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-N986B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 650"},
         {"Samsung Galaxy Note 20 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; SM-N986B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-N986B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 650"},
         {"Samsung Galaxy Note 20 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; SM-N986B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-N986B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 650"},
         {"Samsung Galaxy Z Fold5",
          "Mozilla/5.0 (Linux; Android 14; SM-F946B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy Z Fold5",
-         "Mozilla/5.0 (Linux; Android 14; SM-F946B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-F946B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy Z Fold5",
-         "Mozilla/5.0 (Linux; Android 14; SM-F946B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-F946B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy Z Flip5",
-         "Mozilla/5.0 (Linux; Android 14; SM-F731B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-F731B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy Z Flip5",
-         "Mozilla/5.0 (Linux; Android 14; SM-F731B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; SM-F731B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy Z Flip5",
          "Mozilla/5.0 (Linux; Android 14; SM-F731B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy Z Fold4",
-         "Mozilla/5.0 (Linux; Android 13; SM-F936B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-F936B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy Z Fold4",
-         "Mozilla/5.0 (Linux; Android 13; SM-F936B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-F936B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy Z Flip4",
-         "Mozilla/5.0 (Linux; Android 13; SM-F721B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-F721B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy Z Flip4",
-         "Mozilla/5.0 (Linux; Android 13; SM-F721B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-F721B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy Tab S9",
          "Mozilla/5.0 (Linux; Android 13; SM-X710) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Boise", "en-US", "820", "1180", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy Tab S9",
-         "Mozilla/5.0 (Linux; Android 13; SM-X710) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-X710) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/New_York", "en-US", "820", "1180", "Qualcomm", "Adreno (TM) 740"},
         {"Samsung Galaxy Tab S8",
-         "Mozilla/5.0 (Linux; Android 12; SM-X700) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; SM-X700) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Detroit", "en-US", "820", "1180", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy Tab S8",
-         "Mozilla/5.0 (Linux; Android 12; SM-X700) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; SM-X700) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "820", "1180", "Qualcomm", "Adreno (TM) 730"},
         {"Samsung Galaxy A54",
-         "Mozilla/5.0 (Linux; Android 13; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "ARM", "Mali-G68 MP5"},
         {"Samsung Galaxy A54",
          "Mozilla/5.0 (Linux; Android 13; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "ARM", "Mali-G68 MP5"},
         {"Samsung Galaxy A54",
-         "Mozilla/5.0 (Linux; Android 13; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "ARM", "Mali-G68 MP5"},
         {"Samsung Galaxy A53",
-         "Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "ARM", "Mali-G68 MP4"},
         {"Samsung Galaxy A53",
-         "Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-A536B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "ARM", "Mali-G68 MP4"},
         {"Samsung Galaxy A52",
-         "Mozilla/5.0 (Linux; Android 12; SM-A525F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; SM-A525F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 618"},
         {"Samsung Galaxy A52",
          "Mozilla/5.0 (Linux; Android 12; SM-A525F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 618"},
         {"Samsung Galaxy A34",
-         "Mozilla/5.0 (Linux; Android 13; SM-A346B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-A346B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "ARM", "Mali-G68 MC4"},
         {"Samsung Galaxy A34",
-         "Mozilla/5.0 (Linux; Android 13; SM-A346B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-A346B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "ARM", "Mali-G68 MC4"},
         {"Samsung Galaxy A34",
-         "Mozilla/5.0 (Linux; Android 13; SM-A346B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-A346B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "ARM", "Mali-G68 MC4"},
         {"Samsung Galaxy A14",
-         "Mozilla/5.0 (Linux; Android 13; SM-A145R) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-A145R) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "ARM", "Mali-G52 MC2"},
         {"Samsung Galaxy A14",
          "Mozilla/5.0 (Linux; Android 13; SM-A145R) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "ARM", "Mali-G52 MC2"},
         {"Samsung Galaxy M54",
-         "Mozilla/5.0 (Linux; Android 13; SM-M546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-M546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "ARM", "Mali-G68 MP5"},
         {"Samsung Galaxy M54",
-         "Mozilla/5.0 (Linux; Android 13; SM-M546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; SM-M546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "ARM", "Mali-G68 MP5"},
         {"OnePlus 12",
-         "Mozilla/5.0 (Linux; Android 14; CPH2583) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; CPH2583) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"OnePlus 12",
-         "Mozilla/5.0 (Linux; Android 14; CPH2583) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; CPH2583) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"OnePlus 12",
          "Mozilla/5.0 (Linux; Android 14; CPH2583) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"OnePlus 12",
-         "Mozilla/5.0 (Linux; Android 14; CPH2583) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; CPH2583) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"OnePlus 12R",
-         "Mozilla/5.0 (Linux; Android 14; CPH2609) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; CPH2609) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus 12R",
-         "Mozilla/5.0 (Linux; Android 14; CPH2609) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; CPH2609) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus 12R",
-         "Mozilla/5.0 (Linux; Android 14; CPH2609) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; CPH2609) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus Open",
          "Mozilla/5.0 (Linux; Android 14; CPH2551) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus Open",
-         "Mozilla/5.0 (Linux; Android 14; CPH2551) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; CPH2551) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus Open",
-         "Mozilla/5.0 (Linux; Android 14; CPH2551) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; CPH2551) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus 11",
-         "Mozilla/5.0 (Linux; Android 13; PHB110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; PHB110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus 11",
-         "Mozilla/5.0 (Linux; Android 13; PHB110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; PHB110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus 11",
          "Mozilla/5.0 (Linux; Android 13; PHB110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus 11",
-         "Mozilla/5.0 (Linux; Android 13; PHB110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; PHB110) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"OnePlus 10 Pro",
-         "Mozilla/5.0 (Linux; Android 12; NE2213) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; NE2213) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"OnePlus 10 Pro",
-         "Mozilla/5.0 (Linux; Android 12; NE2213) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; NE2213) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"OnePlus 10 Pro",
-         "Mozilla/5.0 (Linux; Android 12; NE2213) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; NE2213) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"OnePlus 10T",
          "Mozilla/5.0 (Linux; Android 13; CPH2415) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"OnePlus 10T",
-         "Mozilla/5.0 (Linux; Android 13; CPH2415) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; CPH2415) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 730"},
         {"OnePlus 9 Pro",
-         "Mozilla/5.0 (Linux; Android 12; LE2123) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; LE2123) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"OnePlus 9 Pro",
-         "Mozilla/5.0 (Linux; Android 12; LE2123) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 12; LE2123) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 660"},
         {"OnePlus Nord 3",
-         "Mozilla/5.0 (Linux; Android 13; CPH2491) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; CPH2491) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "ARM", "Mali-G710 MC10"},
         {"OnePlus Nord 3",
          "Mozilla/5.0 (Linux; Android 13; CPH2491) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "ARM", "Mali-G710 MC10"},
         {"OnePlus Nord 3",
-         "Mozilla/5.0 (Linux; Android 13; CPH2491) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; CPH2491) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "ARM", "Mali-G710 MC10"},
         {"OnePlus Nord CE 3",
-         "Mozilla/5.0 (Linux; Android 13; CPH2569) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; CPH2569) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 642L"},
         {"OnePlus Nord CE 3",
-         "Mozilla/5.0 (Linux; Android 13; CPH2569) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; CPH2569) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 642L"},
         {"OnePlus Nord N30",
-         "Mozilla/5.0 (Linux; Android 13; CPH2513) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; CPH2513) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 619"},
         {"OnePlus Nord N30",
          "Mozilla/5.0 (Linux; Android 13; CPH2513) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 619"},
+        {"Xiaomi Redmi Note 11",
+         "Mozilla/5.0 (Linux; Android 13; 2201117TG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
+         "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
+        {"Xiaomi Redmi Note 11",
+         "Mozilla/5.0 (Linux; Android 13; 2201117TG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
+         "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
+        {"Samsung Galaxy A23",
+         "Mozilla/5.0 (Linux; Android 13; SM-A235F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
+         "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
+        {"Samsung Galaxy A23",
+         "Mozilla/5.0 (Linux; Android 13; SM-A235F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
+         "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
         {"Xiaomi 14 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Detroit", "en-US", "414", "896", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "414", "896", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Chicago", "en-US", "414", "896", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14 Ultra",
-         "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Denver", "en-US", "414", "896", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14 Pro",
          "Mozilla/5.0 (Linux; Android 14; 23116PN5BC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "414", "896", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14 Pro",
-         "Mozilla/5.0 (Linux; Android 14; 23116PN5BC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 23116PN5BC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "414", "896", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14 Pro",
-         "Mozilla/5.0 (Linux; Android 14; 23116PN5BC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 23116PN5BC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "414", "896", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14",
-         "Mozilla/5.0 (Linux; Android 14; 23127PN0CG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 23127PN0CG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14",
-         "Mozilla/5.0 (Linux; Android 14; 23127PN0CG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 23127PN0CG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 14",
          "Mozilla/5.0 (Linux; Android 14; 23127PN0CG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Xiaomi 13 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; 2304FPN6DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 2304FPN6DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Xiaomi 13 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; 2304FPN6DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 2304FPN6DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Xiaomi 13 Ultra",
-         "Mozilla/5.0 (Linux; Android 13; 2304FPN6DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 2304FPN6DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Xiaomi 13 Pro",
-         "Mozilla/5.0 (Linux; Android 13; 2210132G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 2210132G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Xiaomi 13 Pro",
          "Mozilla/5.0 (Linux; Android 13; 2210132G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Xiaomi 13",
-         "Mozilla/5.0 (Linux; Android 13; 2211133G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 2211133G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Xiaomi 13",
-         "Mozilla/5.0 (Linux; Android 13; 2211133G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 2211133G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
         {"Xiaomi 13T Pro",
-         "Mozilla/5.0 (Linux; Android 13; 23078PND5G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 23078PND5G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC11"},
         {"Xiaomi 13T Pro",
-         "Mozilla/5.0 (Linux; Android 13; 23078PND5G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 23078PND5G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Honolulu", "en-US", "412", "915", "ARM", "Mali-G715-Immortalis MC11"},
         {"Xiaomi Redmi Note 13 Pro",
          "Mozilla/5.0 (Linux; Android 14; 2404) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Puerto_Rico", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 710"},
         {"Xiaomi Redmi Note 13 Pro",
-         "Mozilla/5.0 (Linux; Android 14; 2404) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 2404) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Boise", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 710"},
         {"Xiaomi Redmi Note 13 Pro",
-         "Mozilla/5.0 (Linux; Android 14; 2404) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 2404) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 710"},
         {"Redmi Note 13 Pro+",
-         "Mozilla/5.0 (Linux; Android 13; 23090RA98G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 23090RA98G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "ARM", "Mali-G610 MC4"},
         {"Redmi Note 13 Pro+",
-         "Mozilla/5.0 (Linux; Android 13; 23090RA98G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 13; 23090RA98G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Indiana/Indianapolis", "en-US", "412", "915", "ARM", "Mali-G610 MC4"},
         {"Redmi Note 13 Pro+",
          "Mozilla/5.0 (Linux; Android 13; 23090RA98G) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
          "America/Chicago", "en-US", "412", "915", "ARM", "Mali-G610 MC4"},
         {"Redmi K70 Pro",
-         "Mozilla/5.0 (Linux; Android 14; 23117RK66C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.6312.120 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 23117RK66C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Redmi K70 Pro",
-         "Mozilla/5.0 (Linux; Android 14; 23117RK66C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.119 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 23117RK66C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
          "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Redmi K70 Pro",
-         "Mozilla/5.0 (Linux; Android 14; 23117RK66C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 23117RK66C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 750"},
         {"Redmi K70",
-         "Mozilla/5.0 (Linux; Android 14; 2311DRK48C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36",
+         "Mozilla/5.0 (Linux; Android 14; 2311DRK48C) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
          "America/Anchorage", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 740"},
     };
 
@@ -809,6 +823,7 @@ public class DeviceProfilePool {
         sInitialized = true;
 
         if (context != null) {
+            detectNativeGpu(context);
             loadFromLocalCache(context);
         }
 
@@ -872,14 +887,19 @@ public class DeviceProfilePool {
                     for (int i = 0; i < arr.length(); i++) {
                         JSONObject row = arr.getJSONObject(i);
                         JSONObject p = new JSONObject();
-                        p.put("name", row.optString("name", "Mobile Device"));
+                        String pName = row.optString("name", "Mobile Device");
+                        p.put("name", pName);
                         p.put("userAgent", row.optString("user_agent", row.optString("userAgent", "")));
                         p.put("timezone", row.optString("timezone", "America/New_York"));
                         p.put("language", row.optString("language", "en-US"));
                         p.put("screen_width", row.optInt("screen_width", row.optInt("width", 393)));
                         p.put("screen_height", row.optInt("screen_height", row.optInt("height", 852)));
-                        p.put("webgl_vendor", row.optString("webgl_vendor", row.optString("vendor", "Apple Inc.")));
-                        p.put("webgl_renderer", row.optString("webgl_renderer", row.optString("renderer", "Apple GPU")));
+                        String v = row.optString("webgl_vendor", row.optString("vendor", ""));
+                        if (v.isEmpty()) v = deduceWebglVendor(pName);
+                        String r = row.optString("webgl_renderer", row.optString("renderer", ""));
+                        if (r.isEmpty()) r = deduceWebglRenderer(pName);
+                        p.put("webgl_vendor", v);
+                        p.put("webgl_renderer", r);
                         list.add(p);
                     }
                     return list;
@@ -915,6 +935,13 @@ public class DeviceProfilePool {
                         if (!contentStr.isEmpty()) {
                             try {
                                 JSONObject p = new JSONObject(contentStr);
+                                String pName = p.optString("name", "");
+                                if (!p.has("webgl_vendor") || p.optString("webgl_vendor").isEmpty()) {
+                                    p.put("webgl_vendor", deduceWebglVendor(pName));
+                                }
+                                if (!p.has("webgl_renderer") || p.optString("webgl_renderer").isEmpty()) {
+                                    p.put("webgl_renderer", deduceWebglRenderer(pName));
+                                }
                                 list.add(p);
                             } catch (Exception ignored) {}
                         }
@@ -941,7 +968,15 @@ public class DeviceProfilePool {
                 if (arr.length() > 0) {
                     sDynamicProfiles.clear();
                     for (int i = 0; i < arr.length(); i++) {
-                        sDynamicProfiles.add(arr.getJSONObject(i));
+                        JSONObject p = arr.getJSONObject(i);
+                        String pName = p.optString("name", "");
+                        if (!p.has("webgl_vendor") || p.optString("webgl_vendor").isEmpty()) {
+                            p.put("webgl_vendor", deduceWebglVendor(pName));
+                        }
+                        if (!p.has("webgl_renderer") || p.optString("webgl_renderer").isEmpty()) {
+                            p.put("webgl_renderer", deduceWebglRenderer(pName));
+                        }
+                        sDynamicProfiles.add(p);
                     }
                     Log.d(TAG, "Loaded " + sDynamicProfiles.size() + " cached profiles from local disk");
                 }
@@ -1033,8 +1068,16 @@ public class DeviceProfilePool {
         return getAllStaticProfiles();
     }
 
-    private static JSONArray getAllStaticProfiles() {
-        JSONArray arr = new JSONArray();
+    private static java.util.List<JSONObject> sExpandedProfiles = null;
+
+    private static synchronized JSONArray getAllStaticProfiles() {
+        if (sExpandedProfiles != null && sExpandedProfiles.size() >= 600) {
+            JSONArray arr = new JSONArray();
+            for (JSONObject p : sExpandedProfiles) arr.put(p);
+            return arr;
+        }
+
+        java.util.List<JSONObject> list = new java.util.ArrayList<>();
         for (String[] p : PROFILES) {
             try {
                 JSONObject obj = new JSONObject();
@@ -1047,18 +1090,125 @@ public class DeviceProfilePool {
                 if (p.length > 7) {
                     obj.put("webgl_vendor", p[6]);
                     obj.put("webgl_renderer", p[7]);
+                } else {
+                    obj.put("webgl_vendor", deduceWebglVendor(p[0]));
+                    obj.put("webgl_renderer", deduceWebglRenderer(p[0]));
                 }
-                arr.put(obj);
+                Matcher mm = Pattern.compile("Android\\s+[0-9]+(?:\\.[0-9]+)*;\\s*([^;\\)]+)").matcher(p[1]);
+                if (mm.find()) {
+                    String token = mm.group(1).trim();
+                    if (token.contains(" Build/")) token = token.substring(0, token.indexOf(" Build/")).trim();
+                    if (!token.isEmpty()) obj.put("model", token);
+                }
+                list.add(obj);
             } catch (Exception ignored) {}
         }
+
+        generateAdditionalAndroidProfiles(list, 600);
+        sExpandedProfiles = list;
+
+        JSONArray arr = new JSONArray();
+        for (JSONObject p : sExpandedProfiles) arr.put(p);
         return arr;
+    }
+
+    private static void generateAdditionalAndroidProfiles(java.util.List<JSONObject> list, int targetTotal) {
+        String[][] models = {
+                {"Samsung Galaxy S24 Ultra", "SM-S928U", "412", "915", "Qualcomm", "Adreno (TM) 750"},
+                {"Samsung Galaxy S24+", "SM-S926U", "384", "854", "Qualcomm", "Adreno (TM) 750"},
+                {"Samsung Galaxy S24", "SM-S921U", "360", "800", "Qualcomm", "Adreno (TM) 750"},
+                {"Samsung Galaxy S23 Ultra", "SM-S918U", "412", "915", "Qualcomm", "Adreno (TM) 740"},
+                {"Samsung Galaxy S23+", "SM-S916U", "384", "854", "Qualcomm", "Adreno (TM) 740"},
+                {"Samsung Galaxy S23", "SM-S911U", "360", "800", "Qualcomm", "Adreno (TM) 740"},
+                {"Samsung Galaxy Z Fold5", "SM-F946U", "412", "892", "Qualcomm", "Adreno (TM) 740"},
+                {"Samsung Galaxy Z Flip5", "SM-F731U", "412", "960", "Qualcomm", "Adreno (TM) 740"},
+                {"Samsung Galaxy A54 5G", "SM-A546U", "412", "915", "ARM", "Mali-G68 MP5"},
+                {"Samsung Galaxy A55 5G", "SM-A556U", "412", "915", "ARM", "Mali-G68 MP5"},
+                {"Google Pixel 9 Pro XL", "Pixel 9 Pro XL", "412", "915", "ARM", "Mali-G715 Immortalis"},
+                {"Google Pixel 9 Pro", "Pixel 9 Pro", "393", "851", "ARM", "Mali-G715 Immortalis"},
+                {"Google Pixel 9", "Pixel 9", "393", "851", "ARM", "Mali-G715 Immortalis"},
+                {"Google Pixel 8 Pro", "Pixel 8 Pro", "412", "915", "ARM", "Mali-G715 Immortalis"},
+                {"Google Pixel 8", "Pixel 8", "393", "851", "ARM", "Mali-G715 Immortalis"},
+                {"Google Pixel 8a", "Pixel 8a", "393", "851", "ARM", "Mali-G715 Immortalis"},
+                {"Google Pixel 7 Pro", "Pixel 7 Pro", "412", "892", "ARM", "Mali-G710 MC10"},
+                {"Google Pixel 7", "Pixel 7", "393", "851", "ARM", "Mali-G710 MC10"},
+                {"Google Pixel Fold", "Pixel Fold", "412", "892", "ARM", "Mali-G710 MC10"},
+                {"OnePlus 12", "CPH2583", "412", "915", "Qualcomm", "Adreno (TM) 750"},
+                {"OnePlus 12R", "CPH2609", "393", "851", "Qualcomm", "Adreno (TM) 740"},
+                {"OnePlus Open", "CPH2551", "412", "892", "Qualcomm", "Adreno (TM) 740"},
+                {"OnePlus 11", "CPH2449", "412", "915", "Qualcomm", "Adreno (TM) 740"},
+                {"OnePlus 10 Pro", "NE2215", "412", "915", "Qualcomm", "Adreno (TM) 730"},
+                {"Xiaomi 14 Ultra", "24030PN60G", "412", "915", "Qualcomm", "Adreno (TM) 750"},
+                {"Xiaomi 14 Pro", "23116PN5BC", "412", "915", "Qualcomm", "Adreno (TM) 750"},
+                {"Xiaomi 14", "23127PN0CG", "393", "851", "Qualcomm", "Adreno (TM) 750"},
+                {"Xiaomi 13 Ultra", "2304FPN6DC", "412", "915", "Qualcomm", "Adreno (TM) 740"},
+                {"Xiaomi 13 Pro", "2210132G", "412", "915", "Qualcomm", "Adreno (TM) 740"},
+                {"Motorola Edge 40 Pro", "motorola edge 40 pro", "393", "851", "Qualcomm", "Adreno (TM) 740"},
+                {"Motorola Razr 40 Ultra", "motorola razr 40 ultra", "412", "960", "Qualcomm", "Adreno (TM) 730"},
+                {"Sony Xperia 1 V", "XQ-DQ72", "384", "854", "Qualcomm", "Adreno (TM) 740"},
+                {"Sony Xperia 5 V", "XQ-DE72", "384", "854", "Qualcomm", "Adreno (TM) 740"},
+                {"Nothing Phone (2)", "A065", "393", "851", "Qualcomm", "Adreno (TM) 730"},
+                {"Xiaomi 13T Pro", "23078PND5G", "412", "915", "ARM", "Mali-G715-Immortalis MC11"},
+                {"Xiaomi 13T", "2306EPN60G", "412", "915", "ARM", "Mali-G610 MC4"},
+                {"Xiaomi Redmi K60 Ultra", "23078RKD5C", "412", "915", "ARM", "Mali-G715-Immortalis MC11"},
+                {"OnePlus Nord 3", "CPH2493", "412", "915", "ARM", "Mali-G710 MC10"}
+        };
+
+        String[] chromeVersions = {
+                "124.0.6367.113", "124.0.6367.179", "125.0.6422.112",
+                "125.0.6422.165", "126.0.6478.71", "126.0.6478.122",
+                "127.0.6533.64", "128.0.6613.88"
+        };
+
+        String[] androidVersions = {"14; K", "13; K", "15; K"};
+
+        String[] timezones = {
+                "America/New_York", "America/Chicago", "America/Denver",
+                "America/Los_Angeles", "America/Phoenix", "America/Detroit",
+                "America/Indiana/Indianapolis"
+        };
+
+        int count = list.size();
+        int mIdx = 0;
+        int cvIdx = 0;
+        int avIdx = 0;
+        int tzIdx = 0;
+
+        while (count < targetTotal) {
+            String[] m = models[mIdx % models.length];
+            String cv = chromeVersions[cvIdx % chromeVersions.length];
+            String av = androidVersions[avIdx % androidVersions.length];
+            String tz = timezones[tzIdx % timezones.length];
+
+            String ua = "Mozilla/5.0 (Linux; Android " + av + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + cv + " Mobile Safari/537.36";
+
+            try {
+                JSONObject obj = new JSONObject();
+                obj.put("name", m[0]);
+                obj.put("model", m[1]);
+                obj.put("userAgent", ua);
+                obj.put("timezone", tz);
+                obj.put("language", "en-US");
+                obj.put("screen_width", Integer.parseInt(m[2]));
+                obj.put("screen_height", Integer.parseInt(m[3]));
+                obj.put("webgl_vendor", m[4]);
+                obj.put("webgl_renderer", m[5]);
+                list.add(obj);
+                count++;
+            } catch (Exception ignored) {}
+
+            mIdx++;
+            cvIdx++;
+            avIdx++;
+            tzIdx++;
+        }
     }
 
     /**
      * Total number of profiles currently active in the pool.
      */
     public static int getProfileCount() {
-        return !sDynamicProfiles.isEmpty() ? sDynamicProfiles.size() : PROFILES.length;
+        return getAllProfiles().length();
     }
 
     public static boolean isCloudSynced() {
@@ -1069,26 +1219,179 @@ public class DeviceProfilePool {
      * Get a random profile from the active pool.
      */
     public static JSONObject getRandomProfile() {
-        try {
-            JSONArray all = getAllProfiles();
-            int index = new Random().nextInt(all.length());
-            return all.getJSONObject(index);
-        } catch (Exception e) {
-            return null;
+        return getRandomAndroidProfile();
+    }
+
+    public static String deduceWebglVendor(String name) {
+        if (name == null) return "Qualcomm";
+        String lower = name.toLowerCase();
+        if (lower.contains("iphone") || lower.contains("ipad")) return "Apple Inc.";
+        if (lower.contains("redmi note 11") || lower.contains("a23") || lower.contains("moto g52") || lower.contains("g32")) return "Qualcomm";
+        if (lower.contains("13t") || lower.contains("dimensity") || lower.contains("k60 ultra") ||
+                lower.contains("pixel 9") || lower.contains("pixel 8") || lower.contains("pixel 7") ||
+                lower.contains("pixel 6") || lower.contains("pixel fold") || lower.contains("nord 3") ||
+                lower.contains("nord 2") || lower.contains("a54") || lower.contains("a55") ||
+                lower.contains("a34") || lower.contains("a14") || lower.contains("m54") ||
+                lower.contains("poco x6") || lower.contains("note 13") || lower.contains("v29") ||
+                lower.contains("reno10") || lower.contains("infinix") || lower.contains("blade") ||
+                lower.contains("zte") || lower.contains("mali")) {
+            return "ARM";
         }
+        return "Qualcomm";
+    }
+
+    public static String deduceWebglRenderer(String name) {
+        if (name == null) return "Adreno (TM) 610";
+        String lower = name.toLowerCase();
+        if (lower.contains("iphone") || lower.contains("ipad")) return "Apple GPU";
+        if (lower.contains("redmi note 11") || lower.contains("a23") || lower.contains("moto g52") || lower.contains("g32")) return "Adreno (TM) 610";
+        if (lower.contains("13t pro") || lower.contains("k60 ultra") || lower.contains("dimensity 9200")) return "Mali-G715-Immortalis MC11";
+        if (lower.contains("pixel 9") || lower.contains("pixel 8")) return "Mali-G715-Immortalis MC10";
+        if (lower.contains("pixel 7") || lower.contains("pixel 6") || lower.contains("pixel fold")) return "Mali-G710";
+        if (lower.contains("s24") || lower.contains("oneplus 12") || lower.contains("xiaomi 14")) return "Adreno (TM) 750";
+        if (lower.contains("s23") || lower.contains("oneplus 11") || lower.contains("fold5") || lower.contains("redmagic 8") || lower.contains("magic5") || lower.contains("find x6") || lower.contains("k60")) return "Adreno (TM) 740";
+        if (lower.contains("s22") || lower.contains("edge 40") || lower.contains("10 pro") || lower.contains("rog phone 7")) return "Adreno (TM) 730";
+        if (lower.contains("s21") || lower.contains("s21 fe")) return "Adreno (TM) 660";
+        if (lower.contains("a54") || lower.contains("a55") || lower.contains("a34")) return "Mali-G68";
+        if (lower.contains("poco x6") || lower.contains("nord 3") || lower.contains("note 13")) return "Mali-G610";
+        if (lower.contains("nord n30") || lower.contains("n30")) return "Adreno (TM) 619";
+        return "Adreno (TM) 610";
+    }
+
+    private static volatile String sDetectedNativeGpuVendor = "Qualcomm";
+    private static volatile String sDetectedNativeGpuRenderer = "Adreno (TM) 610";
+    private static volatile boolean sGpuDetectionCompleted = false;
+
+    public static String getDetectedNativeGpuVendor() {
+        if (!sGpuDetectionCompleted) {
+            detectNativeGpu(null);
+        }
+        return sDetectedNativeGpuVendor;
+    }
+
+    public static String getDetectedNativeGpuRenderer() {
+        if (!sGpuDetectionCompleted) {
+            detectNativeGpu(null);
+        }
+        return sDetectedNativeGpuRenderer;
+    }
+
+    public static synchronized void detectNativeGpu(Context context) {
+        if (sGpuDetectionCompleted) return;
+        sGpuDetectionCompleted = true;
+        try {
+            android.opengl.EGLDisplay dpy = android.opengl.EGL14.eglGetDisplay(android.opengl.EGL14.EGL_DEFAULT_DISPLAY);
+            int[] vers = new int[2];
+            android.opengl.EGL14.eglInitialize(dpy, vers, 0, vers, 1);
+            int[] configAttr = {
+                android.opengl.EGL14.EGL_RENDERABLE_TYPE, android.opengl.EGL14.EGL_OPENGL_ES2_BIT,
+                android.opengl.EGL14.EGL_NONE
+            };
+            android.opengl.EGLConfig[] configs = new android.opengl.EGLConfig[1];
+            int[] numConfig = new int[1];
+            android.opengl.EGL14.eglChooseConfig(dpy, configAttr, 0, configs, 0, 1, numConfig, 0);
+            int[] ctxAttr = {
+                android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION, 2,
+                android.opengl.EGL14.EGL_NONE
+            };
+            android.opengl.EGLContext ctx = android.opengl.EGL14.eglCreateContext(dpy, configs[0], android.opengl.EGL14.EGL_NO_CONTEXT, ctxAttr, 0);
+            int[] surfAttr = {
+                android.opengl.EGL14.EGL_WIDTH, 1,
+                android.opengl.EGL14.EGL_HEIGHT, 1,
+                android.opengl.EGL14.EGL_NONE
+            };
+            android.opengl.EGLSurface surf = android.opengl.EGL14.eglCreatePbufferSurface(dpy, configs[0], surfAttr, 0);
+            android.opengl.EGL14.eglMakeCurrent(dpy, surf, surf, ctx);
+            String v = android.opengl.GLES20.glGetString(android.opengl.GLES20.GL_VENDOR);
+            String r = android.opengl.GLES20.glGetString(android.opengl.GLES20.GL_RENDERER);
+            android.opengl.EGL14.eglMakeCurrent(dpy, android.opengl.EGL14.EGL_NO_SURFACE, android.opengl.EGL14.EGL_NO_SURFACE, android.opengl.EGL14.EGL_NO_CONTEXT);
+            android.opengl.EGL14.eglDestroySurface(dpy, surf);
+            android.opengl.EGL14.eglDestroyContext(dpy, ctx);
+            android.opengl.EGL14.eglTerminate(dpy);
+            if (v != null && !v.trim().isEmpty()) sDetectedNativeGpuVendor = v.trim();
+            if (r != null && !r.trim().isEmpty()) sDetectedNativeGpuRenderer = r.trim();
+        } catch (Throwable ignored) {}
+
+        if (sDetectedNativeGpuVendor == null || sDetectedNativeGpuVendor.isEmpty()) {
+            String hw = (android.os.Build.HARDWARE != null ? android.os.Build.HARDWARE : "").toLowerCase();
+            String board = (android.os.Build.BOARD != null ? android.os.Build.BOARD : "").toLowerCase();
+            String model = (android.os.Build.MODEL != null ? android.os.Build.MODEL : "").toLowerCase();
+            String device = (android.os.Build.DEVICE != null ? android.os.Build.DEVICE : "").toLowerCase();
+            String product = (android.os.Build.PRODUCT != null ? android.os.Build.PRODUCT : "").toLowerCase();
+            String soc = "";
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                soc = (android.os.Build.SOC_MODEL != null ? android.os.Build.SOC_MODEL : "").toLowerCase();
+            }
+            String combined = hw + " " + board + " " + model + " " + device + " " + product + " " + soc;
+            if (combined.contains("mt") || combined.contains("dimensity") || combined.contains("mali") ||
+                    combined.contains("corot") || combined.contains("13t") || combined.contains("23078") ||
+                    combined.contains("tensor") || combined.contains("exynos")) {
+                sDetectedNativeGpuVendor = "ARM";
+                sDetectedNativeGpuRenderer = "Mali-G715-Immortalis MC11";
+            } else {
+                sDetectedNativeGpuVendor = "Qualcomm";
+                sDetectedNativeGpuRenderer = "Adreno (TM) 610";
+            }
+        }
+        Log.d("DeviceProfilePool", "Physical Phone Native GPU: " + sDetectedNativeGpuVendor + " / " + sDetectedNativeGpuRenderer);
     }
 
     /**
-     * Get a random Android profile from the active pool.
+     * Get a random Android profile aligned with physical hardware GPU architecture.
      */
     public static JSONObject getRandomAndroidProfile() {
         try {
             JSONArray all = getAllProfiles();
             java.util.List<JSONObject> list = new java.util.ArrayList<>();
+            String vendorDetect = getDetectedNativeGpuVendor();
+            if (vendorDetect == null || vendorDetect.isEmpty()) vendorDetect = "Qualcomm";
+            boolean matchQualcomm = vendorDetect.toLowerCase().contains("qualcomm");
+            boolean matchArm = vendorDetect.toLowerCase().contains("arm");
             for (int i = 0; i < all.length(); i++) {
                 JSONObject p = all.getJSONObject(i);
                 String name = p.optString("name", "").toLowerCase();
-                if (!name.contains("iphone") && !name.contains("ipad")) {
+                if (name.contains("iphone") || name.contains("ipad")) {
+                    continue;
+                }
+                String vendor = p.optString("webgl_vendor", "");
+                if (vendor.isEmpty()) {
+                    vendor = deduceWebglVendor(p.optString("name", ""));
+                }
+                if (matchQualcomm && !vendor.equalsIgnoreCase("Qualcomm")) {
+                    continue;
+                } else if (matchArm && !vendor.equalsIgnoreCase("ARM")) {
+                    continue;
+                }
+                list.add(p);
+            }
+            if (!list.isEmpty()) {
+                String rendererDetect = getDetectedNativeGpuRenderer();
+                if (rendererDetect != null && !rendererDetect.isEmpty()) {
+                    List<JSONObject> exactGpuMatches = new ArrayList<>();
+                    for (JSONObject p : list) {
+                        String r = p.optString("webgl_renderer", "");
+                        if (r.equalsIgnoreCase(rendererDetect)) {
+                            exactGpuMatches.add(p);
+                        }
+                    }
+                    if (!exactGpuMatches.isEmpty()) {
+                        return exactGpuMatches.get(new Random().nextInt(exactGpuMatches.size()));
+                    }
+                }
+                return list.get(new Random().nextInt(list.size()));
+            }
+            // Fallback matching hardware architecture strictly
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject p = all.getJSONObject(i);
+                String name = p.optString("name", "").toLowerCase();
+                if (name.contains("iphone") || name.contains("ipad")) {
+                    continue;
+                }
+                String v = p.optString("webgl_vendor", "");
+                if (v.isEmpty()) v = deduceWebglVendor(p.optString("name", ""));
+                if (matchArm && v.equalsIgnoreCase("ARM")) {
+                    list.add(p);
+                } else if (matchQualcomm && v.equalsIgnoreCase("Qualcomm")) {
                     list.add(p);
                 }
             }
@@ -1128,23 +1431,7 @@ public class DeviceProfilePool {
      * Get a random profile excluding already used/locked device model names to prevent overlap across tabs and phones.
      */
     public static JSONObject getRandomProfileExcluding(java.util.Set<String> usedModelNames) {
-        try {
-            JSONArray all = getAllProfiles();
-            java.util.List<JSONObject> available = new java.util.ArrayList<>();
-            for (int i = 0; i < all.length(); i++) {
-                JSONObject p = all.getJSONObject(i);
-                String name = p.optString("name", "");
-                if (usedModelNames == null || !usedModelNames.contains(name)) {
-                    available.add(p);
-                }
-            }
-            if (!available.isEmpty()) {
-                return available.get(new Random().nextInt(available.size()));
-            }
-            return all.getJSONObject(new Random().nextInt(all.length()));
-        } catch (Exception e) {
-            return getRandomAndroidProfile();
-        }
+        return getRandomAndroidProfileExcluding(usedModelNames);
     }
 
     /**
@@ -1154,6 +1441,10 @@ public class DeviceProfilePool {
         try {
             JSONArray all = getAllProfiles();
             java.util.List<JSONObject> available = new java.util.ArrayList<>();
+            String vendorDetect = getDetectedNativeGpuVendor();
+            if (vendorDetect == null || vendorDetect.isEmpty()) vendorDetect = "Qualcomm";
+            boolean matchQualcomm = vendorDetect.toLowerCase().contains("qualcomm");
+            boolean matchArm = vendorDetect.toLowerCase().contains("arm");
             for (int i = 0; i < all.length(); i++) {
                 JSONObject p = all.getJSONObject(i);
                 String name = p.optString("name", "");
@@ -1161,11 +1452,33 @@ public class DeviceProfilePool {
                 if (nameLower.contains("iphone") || nameLower.contains("ipad")) {
                     continue; // Exclude iOS profiles
                 }
+                String vendor = p.optString("webgl_vendor", "");
+                if (vendor.isEmpty()) {
+                    vendor = deduceWebglVendor(name);
+                }
+                if (matchQualcomm && !vendor.equalsIgnoreCase("Qualcomm")) {
+                    continue;
+                } else if (matchArm && !vendor.equalsIgnoreCase("ARM")) {
+                    continue;
+                }
                 if (usedModelNames == null || !usedModelNames.contains(name)) {
                     available.add(p);
                 }
             }
             if (!available.isEmpty()) {
+                String rendererDetect = getDetectedNativeGpuRenderer();
+                if (rendererDetect != null && !rendererDetect.isEmpty()) {
+                    List<JSONObject> exactGpuMatches = new ArrayList<>();
+                    for (JSONObject p : available) {
+                        String r = p.optString("webgl_renderer", "");
+                        if (r.equalsIgnoreCase(rendererDetect)) {
+                            exactGpuMatches.add(p);
+                        }
+                    }
+                    if (!exactGpuMatches.isEmpty()) {
+                        return exactGpuMatches.get(new Random().nextInt(exactGpuMatches.size()));
+                    }
+                }
                 return available.get(new Random().nextInt(available.size()));
             }
             return getRandomAndroidProfile();

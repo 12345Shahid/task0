@@ -478,10 +478,6 @@ public class BrowserActivity extends AppCompatActivity {
             badgeBg.setColor(0xFF45475A); // Neutral grey
             proxyBadge.setText("⚡ Direct (Stopped)" + bwSuffix);
             proxyBadge.setTextColor(0xFFBAC2DE);
-        } else if (WebViewProxyManager.isProxyDirectFallbackActive()) {
-            badgeBg.setColor(0xFFE65100); // Amber
-            proxyBadge.setText("⚠️ Direct Fallback" + bwSuffix);
-            proxyBadge.setTextColor(Color.WHITE);
         } else if (isProxied) {
             badgeBg.setColor(0xFF2E7D32); // Green
             String city = WebViewProxyManager.getActiveGeoCity();

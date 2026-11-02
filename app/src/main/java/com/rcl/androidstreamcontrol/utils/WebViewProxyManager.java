@@ -73,17 +73,13 @@ public class WebViewProxyManager {
     private static volatile String activeGeoCity = "";
     private static final java.util.concurrent.atomic.AtomicLong sessionBytesTransferred = new java.util.concurrent.atomic.AtomicLong(0);
 
-    // Dynamic direct fallback state when upstream residential proxy encounters 502/503 or overload
-    private static volatile long upstreamProxyCoolOffUntil = 0;
-    private static volatile boolean isProxyDirectFallbackActive = false;
-
-    // Live Geolocation & Timezone matching state (Aligned with active residential proxy)
-    private static volatile String lastResolvedIp = "146.70.25.198";
-    private static volatile String lastResolvedCity = "Dallas";
-    private static volatile String lastResolvedRegion = "Texas";
+    // Live Geolocation & Timezone matching state (Dynamically synced 1:1 with active residential proxy)
+    private static volatile String lastResolvedIp = "148.170.97.99";
+    private static volatile String lastResolvedCity = "Livingston";
+    private static volatile String lastResolvedRegion = "Tennessee";
     private static volatile String lastResolvedTimezone = "America/Chicago";
-    private static volatile double lastResolvedLat = 32.7767;
-    private static volatile double lastResolvedLon = -96.7970;
+    private static volatile double lastResolvedLat = 36.3888;
+    private static volatile double lastResolvedLon = -85.3194;
 
     public static double getLastResolvedLat() {
         return lastResolvedLat;
@@ -346,12 +342,11 @@ public class WebViewProxyManager {
     }
 
     public static boolean isProxyDirectFallbackActive() {
-        return isProxyDirectFallbackActive;
+        return false;
     }
 
     public static void resetProxyCoolOff() {
-        upstreamProxyCoolOffUntil = 0;
-        isProxyDirectFallbackActive = false;
+        // Strict Proxy Purity — all whitelisted traffic strictly tunnels via US residential proxy
     }
 
     public static String getLastResolvedIp() {
@@ -504,9 +499,9 @@ public class WebViewProxyManager {
                 } catch (Exception ignored) {}
             }
 
-            final String finalIp = (lastResolvedIp != null) ? lastResolvedIp : "146.70.25.198";
-            final String finalCity = (lastResolvedCity != null) ? lastResolvedCity : "Dallas";
-            final String finalRegion = (lastResolvedRegion != null) ? lastResolvedRegion : "Texas";
+            final String finalIp = (lastResolvedIp != null) ? lastResolvedIp : "148.170.97.99";
+            final String finalCity = (lastResolvedCity != null) ? lastResolvedCity : "Livingston";
+            final String finalRegion = (lastResolvedRegion != null) ? lastResolvedRegion : "Tennessee";
             final String finalCountry = country;
             final String finalTz = (lastResolvedTimezone != null) ? lastResolvedTimezone : "America/Chicago";
             final double finalLat = lastResolvedLat;
@@ -868,29 +863,19 @@ public class WebViewProxyManager {
             }
 
             boolean isConnect = "CONNECT".equalsIgnoreCase(method);
-            long now = System.currentTimeMillis();
-            boolean skipUpstream = isProxyStopped || (now < upstreamProxyCoolOffUntil);
-            boolean upstreamSucceeded = false;
 
-            if (!skipUpstream && proxyHost != null && !proxyHost.isEmpty()) {
-                String[] passAttempts;
-                if (activeGeoCity != null && !activeGeoCity.trim().isEmpty()) {
-                    passAttempts = new String[] {
-                            getEffectiveProxyPass(true),
-                            getEffectiveProxyPass(false)
-                    };
-                } else {
-                    passAttempts = new String[] {
-                            getEffectiveProxyPass(false)
-                    };
-                }
+            if (!isProxyStopped && proxyHost != null && !proxyHost.isEmpty()) {
+                String[] passAttempts = new String[] {
+                        getEffectiveProxyPass(false),
+                        getEffectiveProxyPass(true)
+                };
 
                 for (String passToTry : passAttempts) {
                     try {
                         upstreamSocket = new Socket();
-                        upstreamSocket.connect(new java.net.InetSocketAddress(proxyHost, proxyPort), 4000);
+                        upstreamSocket.connect(new java.net.InetSocketAddress(proxyHost, proxyPort), 12000);
                         upstreamSocket.setTcpNoDelay(true);
-                        upstreamSocket.setSoTimeout(6000);
+                        upstreamSocket.setSoTimeout(15000);
 
                         InputStream uIn = upstreamSocket.getInputStream();
                         OutputStream uOut = upstreamSocket.getOutputStream();
@@ -938,8 +923,6 @@ public class WebViewProxyManager {
 
                                 upstreamSocket.setSoTimeout(0);
                                 clientSocket.setSoTimeout(0);
-                                isProxyDirectFallbackActive = false;
-                                upstreamSucceeded = true;
                                 pipeSockets(clientSocket, upstreamSocket);
                                 return;
                             } else {
@@ -961,8 +944,6 @@ public class WebViewProxyManager {
 
                             upstreamSocket.setSoTimeout(0);
                             clientSocket.setSoTimeout(0);
-                            isProxyDirectFallbackActive = false;
-                            upstreamSucceeded = true;
                             pipeSockets(clientSocket, upstreamSocket);
                             return;
                         }
@@ -973,41 +954,6 @@ public class WebViewProxyManager {
                             upstreamSocket = null;
                         }
                     }
-                }
-            }
-
-            // Upstream proxy failed, timed out, or in cool-off.
-            // Seamlessly fall back to direct connection — NEVER show net::ERR_TUNNEL_CONNECTION_FAILED!
-            if (!upstreamSucceeded && !targetHost.isEmpty()) {
-                if (!skipUpstream) {
-                    Log.w(TAG, "Upstream proxy overloaded or down. Activating seamless direct fallback for 30s: " + targetHost);
-                    upstreamProxyCoolOffUntil = System.currentTimeMillis() + 30000;
-                    isProxyDirectFallbackActive = true;
-                }
-
-                try {
-                    Socket directSocket = new Socket();
-                    directSocket.connect(new java.net.InetSocketAddress(targetHost, targetPort), 6000);
-                    directSocket.setTcpNoDelay(true);
-
-                    if (isConnect) {
-                        byte[] okBytes = "HTTP/1.1 200 Connection Established\r\n\r\n".getBytes(StandardCharsets.ISO_8859_1);
-                        out.write(okBytes);
-                        out.flush();
-                        addSessionBytes(okBytes.length);
-                    } else {
-                        OutputStream dOut = directSocket.getOutputStream();
-                        dOut.write(rawHeaders);
-                        dOut.flush();
-                        addSessionBytes(rawHeaders.length);
-                    }
-
-                    directSocket.setSoTimeout(0);
-                    clientSocket.setSoTimeout(0);
-                    pipeSockets(clientSocket, directSocket);
-                    return;
-                } catch (Exception directEx) {
-                    Log.e(TAG, "Direct fallback failed for " + targetHost + ":" + targetPort + " -> " + directEx.getMessage());
                 }
             }
 

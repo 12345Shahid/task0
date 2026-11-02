@@ -69,17 +69,21 @@ public class WebViewProxyManager {
     private static volatile String proxyUser = "Ltj8SfJpTEukyVn";
     private static volatile String proxyPass = "0Pa7rRMzcehfeLR_country-US";
     private static volatile String currentSessionTag = "active";
-    private static volatile String activeGeoState = "TN";
-    private static volatile String activeGeoCity = "livingston";
+    private static volatile String activeGeoState = "";
+    private static volatile String activeGeoCity = "";
     private static final java.util.concurrent.atomic.AtomicLong sessionBytesTransferred = new java.util.concurrent.atomic.AtomicLong(0);
 
+    // Dynamic direct fallback state when upstream residential proxy encounters 502/503 or overload
+    private static volatile long upstreamProxyCoolOffUntil = 0;
+    private static volatile boolean isProxyDirectFallbackActive = false;
+
     // Live Geolocation & Timezone matching state (Aligned with active residential proxy)
-    private static volatile String lastResolvedIp = "148.170.97.99";
-    private static volatile String lastResolvedCity = "Livingston";
-    private static volatile String lastResolvedRegion = "Tennessee";
+    private static volatile String lastResolvedIp = "146.70.25.198";
+    private static volatile String lastResolvedCity = "Dallas";
+    private static volatile String lastResolvedRegion = "Texas";
     private static volatile String lastResolvedTimezone = "America/Chicago";
-    private static volatile double lastResolvedLat = 36.3834;
-    private static volatile double lastResolvedLon = -85.3230;
+    private static volatile double lastResolvedLat = 32.7767;
+    private static volatile double lastResolvedLon = -96.7970;
 
     public static double getLastResolvedLat() {
         return lastResolvedLat;
@@ -332,14 +336,22 @@ public class WebViewProxyManager {
             base = base + "_country-US";
         }
         StringBuilder sb = new StringBuilder(base);
-        if (includeCity) {
-            String cityToUse = (activeGeoCity != null && !activeGeoCity.trim().isEmpty()) ? activeGeoCity : "newyork";
-            String cleanCity = formatCityParam(cityToUse);
+        if (includeCity && activeGeoCity != null && !activeGeoCity.trim().isEmpty()) {
+            String cleanCity = formatCityParam(activeGeoCity);
             if (!cleanCity.isEmpty()) {
                 sb.append("_city-").append(cleanCity);
             }
         }
         return sb.toString();
+    }
+
+    public static boolean isProxyDirectFallbackActive() {
+        return isProxyDirectFallbackActive;
+    }
+
+    public static void resetProxyCoolOff() {
+        upstreamProxyCoolOffUntil = 0;
+        isProxyDirectFallbackActive = false;
     }
 
     public static String getLastResolvedIp() {
@@ -380,6 +392,7 @@ public class WebViewProxyManager {
      */
     public static String rotateProxySession() {
         isProxyStopped = false;
+        resetProxyCoolOff();
         currentSessionTag = "cycle-" + Long.toHexString(System.currentTimeMillis()).substring(4);
         Log.d(TAG, "Cycling proxy connection: " + currentSessionTag);
         resolveCurrentProxyGeo(null);
@@ -470,8 +483,8 @@ public class WebViewProxyManager {
                         JSONObject json = new JSONObject(sb.toString());
                         if ("success".equalsIgnoreCase(json.optString("status", ""))) {
                             ip = json.optString("query", null);
-                            city = json.optString("city", "Livingston");
-                            region = json.optString("regionName", "Tennessee");
+                            city = json.optString("city", "Dallas");
+                            region = json.optString("regionName", "Texas");
                             country = json.optString("countryCode", "US");
                             timezone = json.optString("timezone", "America/Chicago");
 
@@ -483,17 +496,17 @@ public class WebViewProxyManager {
                                 FingerprintManager.setActiveTimezone(timezone);
                             }
                             if (json.has("lat") && json.has("lon")) {
-                                lastResolvedLat = json.optDouble("lat", 36.3834);
-                                lastResolvedLon = json.optDouble("lon", -85.3230);
+                                lastResolvedLat = json.optDouble("lat", 32.7767);
+                                lastResolvedLon = json.optDouble("lon", -96.7970);
                             }
                         }
                     }
                 } catch (Exception ignored) {}
             }
 
-            final String finalIp = (lastResolvedIp != null) ? lastResolvedIp : "148.170.97.99";
-            final String finalCity = (lastResolvedCity != null) ? lastResolvedCity : "Livingston";
-            final String finalRegion = (lastResolvedRegion != null) ? lastResolvedRegion : "Tennessee";
+            final String finalIp = (lastResolvedIp != null) ? lastResolvedIp : "146.70.25.198";
+            final String finalCity = (lastResolvedCity != null) ? lastResolvedCity : "Dallas";
+            final String finalRegion = (lastResolvedRegion != null) ? lastResolvedRegion : "Texas";
             final String finalCountry = country;
             final String finalTz = (lastResolvedTimezone != null) ? lastResolvedTimezone : "America/Chicago";
             final double finalLat = lastResolvedLat;
@@ -768,7 +781,7 @@ public class WebViewProxyManager {
             OutputStream out = clientSocket.getOutputStream();
 
             ByteArrayOutputStream headerBuffer = new ByteArrayOutputStream();
-            byte[] buf = new byte[1024];
+            byte[] buf = new byte[2048];
             int read;
             boolean headersComplete = false;
 
@@ -787,7 +800,7 @@ public class WebViewProxyManager {
             }
 
             if (!headersComplete) {
-                clientSocket.close();
+                try { clientSocket.close(); } catch (Exception ignored) {}
                 return;
             }
 
@@ -795,146 +808,212 @@ public class WebViewProxyManager {
             String headerStr = new String(rawHeaders, StandardCharsets.ISO_8859_1);
             int firstLineEnd = headerStr.indexOf("\r\n");
             if (firstLineEnd == -1) {
-                clientSocket.close();
+                try { clientSocket.close(); } catch (Exception ignored) {}
                 return;
             }
 
             String firstLine = headerStr.substring(0, firstLineEnd);
             String[] parts = firstLine.split(" ");
             if (parts.length < 2) {
-                clientSocket.close();
+                try { clientSocket.close(); } catch (Exception ignored) {}
                 return;
             }
 
             String method = parts[0];
             String target = parts[1];
 
-            // Upstream proxy credentials (with city targeting if set)
-            String authHeader = "";
-            if (proxyUser != null && !proxyUser.isEmpty()) {
-                String creds = proxyUser + ":" + getEffectiveProxyPass(true);
-                authHeader = "Proxy-Authorization: Basic " +
-                        android.util.Base64.encodeToString(creds.getBytes(StandardCharsets.UTF_8), android.util.Base64.NO_WRAP) + "\r\n";
-            }
-
-            upstreamSocket = new Socket(proxyHost, proxyPort);
-            upstreamSocket.setTcpNoDelay(true);
-            upstreamSocket.setSoTimeout(15000);
-            InputStream upstreamIn = upstreamSocket.getInputStream();
-            OutputStream upstreamOut = upstreamSocket.getOutputStream();
+            // Determine target host and port
+            String targetHost = "";
+            int targetPort = "CONNECT".equalsIgnoreCase(method) ? 443 : 80;
 
             if ("CONNECT".equalsIgnoreCase(method)) {
-                // HTTPS CONNECT Tunnel
-                String connectReq = "CONNECT " + target + " HTTP/1.1\r\n" +
-                        "Host: " + target + "\r\n" +
-                        authHeader +
-                        "Proxy-Connection: Keep-Alive\r\n\r\n";
-                byte[] connectBytes = connectReq.getBytes(StandardCharsets.ISO_8859_1);
-                upstreamOut.write(connectBytes);
-                upstreamOut.flush();
-                addSessionBytes(connectBytes.length);
+                int colonIdx = target.indexOf(':');
+                if (colonIdx != -1) {
+                    targetHost = target.substring(0, colonIdx);
+                    try {
+                        targetPort = Integer.parseInt(target.substring(colonIdx + 1));
+                    } catch (Exception ignored) {
+                        targetPort = 443;
+                    }
+                } else {
+                    targetHost = target;
+                    targetPort = 443;
+                }
+            } else {
+                for (String line : headerStr.split("\r\n")) {
+                    if (line.toLowerCase().startsWith("host:")) {
+                        String h = line.substring(5).trim();
+                        int cIdx = h.indexOf(':');
+                        if (cIdx != -1) {
+                            targetHost = h.substring(0, cIdx);
+                            try {
+                                targetPort = Integer.parseInt(h.substring(cIdx + 1));
+                            } catch (Exception ignored) {
+                                targetPort = 80;
+                            }
+                        } else {
+                            targetHost = h;
+                            targetPort = 80;
+                        }
+                        break;
+                    }
+                }
+                if (targetHost.isEmpty()) {
+                    try {
+                        Uri u = Uri.parse(target);
+                        if (u.getHost() != null) targetHost = u.getHost();
+                        if (u.getPort() > 0) targetPort = u.getPort();
+                    } catch (Exception ignored) {}
+                }
+            }
 
-                ByteArrayOutputStream respBuf = new ByteArrayOutputStream();
-                byte[] rBuf = new byte[1024];
-                boolean respComplete = false;
-                while (!respComplete && (read = upstreamIn.read(rBuf)) != -1) {
-                    respBuf.write(rBuf, 0, read);
-                    addSessionBytes(read);
-                    byte[] cResp = respBuf.toByteArray();
-                    for (int i = 0; i <= cResp.length - 4; i++) {
-                        if (cResp[i] == '\r' && cResp[i + 1] == '\n' &&
-                            cResp[i + 2] == '\r' && cResp[i + 3] == '\n') {
-                            respComplete = true;
-                            break;
+            boolean isConnect = "CONNECT".equalsIgnoreCase(method);
+            long now = System.currentTimeMillis();
+            boolean skipUpstream = isProxyStopped || (now < upstreamProxyCoolOffUntil);
+            boolean upstreamSucceeded = false;
+
+            if (!skipUpstream && proxyHost != null && !proxyHost.isEmpty()) {
+                String[] passAttempts;
+                if (activeGeoCity != null && !activeGeoCity.trim().isEmpty()) {
+                    passAttempts = new String[] {
+                            getEffectiveProxyPass(true),
+                            getEffectiveProxyPass(false)
+                    };
+                } else {
+                    passAttempts = new String[] {
+                            getEffectiveProxyPass(false)
+                    };
+                }
+
+                for (String passToTry : passAttempts) {
+                    try {
+                        upstreamSocket = new Socket();
+                        upstreamSocket.connect(new java.net.InetSocketAddress(proxyHost, proxyPort), 4000);
+                        upstreamSocket.setTcpNoDelay(true);
+                        upstreamSocket.setSoTimeout(6000);
+
+                        InputStream uIn = upstreamSocket.getInputStream();
+                        OutputStream uOut = upstreamSocket.getOutputStream();
+
+                        String authHeader = "";
+                        if (proxyUser != null && !proxyUser.isEmpty()) {
+                            String creds = proxyUser + ":" + passToTry;
+                            authHeader = "Proxy-Authorization: Basic " +
+                                    android.util.Base64.encodeToString(creds.getBytes(StandardCharsets.UTF_8), android.util.Base64.NO_WRAP) + "\r\n";
+                        }
+
+                        if (isConnect) {
+                            String connectReq = "CONNECT " + target + " HTTP/1.1\r\n" +
+                                    "Host: " + target + "\r\n" +
+                                    authHeader +
+                                    "Proxy-Connection: Keep-Alive\r\n\r\n";
+                            byte[] reqBytes = connectReq.getBytes(StandardCharsets.ISO_8859_1);
+                            uOut.write(reqBytes);
+                            uOut.flush();
+                            addSessionBytes(reqBytes.length);
+
+                            ByteArrayOutputStream respBuf = new ByteArrayOutputStream();
+                            byte[] rBuf = new byte[1024];
+                            boolean respComplete = false;
+                            while (!respComplete && (read = uIn.read(rBuf)) != -1) {
+                                respBuf.write(rBuf, 0, read);
+                                addSessionBytes(read);
+                                byte[] cResp = respBuf.toByteArray();
+                                for (int i = 0; i <= cResp.length - 4; i++) {
+                                    if (cResp[i] == '\r' && cResp[i + 1] == '\n' &&
+                                        cResp[i + 2] == '\r' && cResp[i + 3] == '\n') {
+                                        respComplete = true;
+                                        break;
+                                    }
+                                }
+                                if (respBuf.size() > 16384) break;
+                            }
+
+                            String respStr = new String(respBuf.toByteArray(), StandardCharsets.ISO_8859_1);
+                            if (respStr.startsWith("HTTP/1.0 200") || respStr.startsWith("HTTP/1.1 200")) {
+                                byte[] okBytes = "HTTP/1.1 200 Connection Established\r\n\r\n".getBytes(StandardCharsets.ISO_8859_1);
+                                out.write(okBytes);
+                                out.flush();
+                                addSessionBytes(okBytes.length);
+
+                                upstreamSocket.setSoTimeout(0);
+                                clientSocket.setSoTimeout(0);
+                                isProxyDirectFallbackActive = false;
+                                upstreamSucceeded = true;
+                                pipeSockets(clientSocket, upstreamSocket);
+                                return;
+                            } else {
+                                Log.w(TAG, "Upstream proxy returned non-200: " + (respStr.length() > 50 ? respStr.substring(0, 50) : respStr));
+                                try { upstreamSocket.close(); } catch (Exception ignored) {}
+                                upstreamSocket = null;
+                            }
+                        } else {
+                            // Plain HTTP
+                            int headerInsertIndex = headerStr.indexOf("\r\n") + 2;
+                            String modifiedHeaders = headerStr.substring(0, headerInsertIndex) +
+                                    authHeader +
+                                    headerStr.substring(headerInsertIndex);
+
+                            byte[] modBytes = modifiedHeaders.getBytes(StandardCharsets.ISO_8859_1);
+                            uOut.write(modBytes);
+                            uOut.flush();
+                            addSessionBytes(modBytes.length);
+
+                            upstreamSocket.setSoTimeout(0);
+                            clientSocket.setSoTimeout(0);
+                            isProxyDirectFallbackActive = false;
+                            upstreamSucceeded = true;
+                            pipeSockets(clientSocket, upstreamSocket);
+                            return;
+                        }
+                    } catch (Exception ex) {
+                        Log.d(TAG, "Upstream proxy attempt failed: " + ex.getMessage());
+                        if (upstreamSocket != null) {
+                            try { upstreamSocket.close(); } catch (Exception ignored) {}
+                            upstreamSocket = null;
                         }
                     }
                 }
+            }
 
-                String respStr = new String(respBuf.toByteArray(), StandardCharsets.ISO_8859_1);
-                if (respStr.startsWith("HTTP/1.0 200") || respStr.startsWith("HTTP/1.1 200")) {
-                    byte[] okBytes = "HTTP/1.1 200 Connection Established\r\n\r\n".getBytes(StandardCharsets.ISO_8859_1);
-                    out.write(okBytes);
-                    out.flush();
-                    addSessionBytes(okBytes.length);
+            // Upstream proxy failed, timed out, or in cool-off.
+            // Seamlessly fall back to direct connection — NEVER show net::ERR_TUNNEL_CONNECTION_FAILED!
+            if (!upstreamSucceeded && !targetHost.isEmpty()) {
+                if (!skipUpstream) {
+                    Log.w(TAG, "Upstream proxy overloaded or down. Activating seamless direct fallback for 30s: " + targetHost);
+                    upstreamProxyCoolOffUntil = System.currentTimeMillis() + 30000;
+                    isProxyDirectFallbackActive = true;
+                }
 
-                    upstreamSocket.setSoTimeout(0);
-                    clientSocket.setSoTimeout(0);
-                    pipeSockets(clientSocket, upstreamSocket);
-                } else if (respStr.startsWith("HTTP/1.0 502") || respStr.startsWith("HTTP/1.1 502") ||
-                           respStr.startsWith("HTTP/1.0 503") || respStr.startsWith("HTTP/1.1 503") ||
-                           respStr.startsWith("HTTP/1.0 407") || respStr.startsWith("HTTP/1.1 407")) {
-                    // Upstream error — fall back to country level baseline
-                    try { upstreamSocket.close(); } catch (Exception ignored) {}
-                    upstreamSocket = new Socket(proxyHost, proxyPort);
-                    upstreamSocket.setTcpNoDelay(true);
-                    upstreamSocket.setSoTimeout(15000);
-                    upstreamIn = upstreamSocket.getInputStream();
-                    upstreamOut = upstreamSocket.getOutputStream();
+                try {
+                    Socket directSocket = new Socket();
+                    directSocket.connect(new java.net.InetSocketAddress(targetHost, targetPort), 6000);
+                    directSocket.setTcpNoDelay(true);
 
-                    String fbCreds = proxyUser + ":" + getEffectiveProxyPass(false);
-                    String fbAuth = "Proxy-Authorization: Basic " +
-                            android.util.Base64.encodeToString(fbCreds.getBytes(StandardCharsets.UTF_8), android.util.Base64.NO_WRAP) + "\r\n";
-                    String fbReq = "CONNECT " + target + " HTTP/1.1\r\n" +
-                            "Host: " + target + "\r\n" +
-                            fbAuth +
-                            "Proxy-Connection: Keep-Alive\r\n\r\n";
-                    byte[] fbReqBytes = fbReq.getBytes(StandardCharsets.ISO_8859_1);
-                    upstreamOut.write(fbReqBytes);
-                    upstreamOut.flush();
-                    addSessionBytes(fbReqBytes.length);
-
-                    respBuf.reset();
-                    respComplete = false;
-                    while (!respComplete && (read = upstreamIn.read(rBuf)) != -1) {
-                        respBuf.write(rBuf, 0, read);
-                        addSessionBytes(read);
-                        byte[] cResp = respBuf.toByteArray();
-                        for (int i = 0; i <= cResp.length - 4; i++) {
-                            if (cResp[i] == '\r' && cResp[i + 1] == '\n' &&
-                                cResp[i + 2] == '\r' && cResp[i + 3] == '\n') {
-                                respComplete = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    respStr = new String(respBuf.toByteArray(), StandardCharsets.ISO_8859_1);
-                    if (respStr.startsWith("HTTP/1.0 200") || respStr.startsWith("HTTP/1.1 200")) {
+                    if (isConnect) {
                         byte[] okBytes = "HTTP/1.1 200 Connection Established\r\n\r\n".getBytes(StandardCharsets.ISO_8859_1);
                         out.write(okBytes);
                         out.flush();
                         addSessionBytes(okBytes.length);
-
-                        upstreamSocket.setSoTimeout(0);
-                        clientSocket.setSoTimeout(0);
-                        pipeSockets(clientSocket, upstreamSocket);
                     } else {
-                        out.write(respBuf.toByteArray());
-                        out.flush();
-                        clientSocket.close();
-                        upstreamSocket.close();
+                        OutputStream dOut = directSocket.getOutputStream();
+                        dOut.write(rawHeaders);
+                        dOut.flush();
+                        addSessionBytes(rawHeaders.length);
                     }
-                } else {
-                    out.write(respBuf.toByteArray());
-                    out.flush();
-                    clientSocket.close();
-                    upstreamSocket.close();
+
+                    directSocket.setSoTimeout(0);
+                    clientSocket.setSoTimeout(0);
+                    pipeSockets(clientSocket, directSocket);
+                    return;
+                } catch (Exception directEx) {
+                    Log.e(TAG, "Direct fallback failed for " + targetHost + ":" + targetPort + " -> " + directEx.getMessage());
                 }
-            } else {
-                // Plain HTTP request
-                int headerInsertIndex = headerStr.indexOf("\r\n") + 2;
-                String modifiedHeaders = headerStr.substring(0, headerInsertIndex) +
-                        authHeader +
-                        headerStr.substring(headerInsertIndex);
+            }
 
-                byte[] modBytes = modifiedHeaders.getBytes(StandardCharsets.ISO_8859_1);
-                upstreamOut.write(modBytes);
-                upstreamOut.flush();
-                addSessionBytes(modBytes.length);
-
-                upstreamSocket.setSoTimeout(0);
-                clientSocket.setSoTimeout(0);
-                pipeSockets(clientSocket, upstreamSocket);
+            try { clientSocket.close(); } catch (Exception ignored) {}
+            if (upstreamSocket != null) {
+                try { upstreamSocket.close(); } catch (Exception ignored) {}
             }
         } catch (Exception e) {
             Log.d(TAG, "Local loopback proxy error: " + e.getMessage());

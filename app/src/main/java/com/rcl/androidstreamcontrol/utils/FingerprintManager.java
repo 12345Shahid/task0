@@ -650,6 +650,10 @@ public class FingerprintManager {
                 "          get: makeNative(function maxTouchPoints() { return 5; }, 'get maxTouchPoints', 0),\n" +
                 "          configurable: true, enumerable: true\n" +
                 "        });\n" +
+                "        Object.defineProperty(target, 'webdriver', {\n" +
+                "          get: makeNative(function webdriver() { return false; }, 'get webdriver', 0),\n" +
+                "          configurable: true, enumerable: true\n" +
+                "        });\n" +
                 "      } catch(e) {}\n" +
                 "\n" +
                 "      try {\n" +

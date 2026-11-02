@@ -1562,36 +1562,64 @@ public class BrowserActivity extends AppCompatActivity {
         java.util.List<JSONObject> compatibleProfiles = new java.util.ArrayList<>();
         String nativeVendor = DeviceProfilePool.getDetectedNativeGpuVendor();
         if (nativeVendor == null || nativeVendor.isEmpty()) {
-            nativeVendor = "ARM";
+            nativeVendor = "Qualcomm";
+        }
+        String nativeRenderer = DeviceProfilePool.getDetectedNativeGpuRenderer();
+        if (nativeRenderer == null || nativeRenderer.isEmpty()) {
+            nativeRenderer = "Adreno (TM) 610";
         }
         boolean matchQualcomm = nativeVendor.toLowerCase().contains("qualcomm");
         boolean matchArm = nativeVendor.toLowerCase().contains("arm");
+        boolean is610 = nativeRenderer.contains("610");
 
         for (int i = 0; i < allProfiles.length(); i++) {
             JSONObject p = allProfiles.optJSONObject(i);
             if (p == null) continue;
-            String pName = p.optString("name", "").toLowerCase();
-            if (pName.contains("iphone") || pName.contains("ipad")) continue;
+            String pName = p.optString("name", "");
+            String pNameLower = pName.toLowerCase();
+            if (pNameLower.contains("iphone") || pNameLower.contains("ipad")) continue;
             String vendor = p.optString("webgl_vendor", "");
             if (vendor.isEmpty()) {
-                vendor = DeviceProfilePool.deduceWebglVendor(p.optString("name", ""));
+                vendor = DeviceProfilePool.deduceWebglVendor(pName);
             }
-            if (matchArm && !vendor.equalsIgnoreCase("ARM")) continue;
-            if (matchQualcomm && !vendor.equalsIgnoreCase("Qualcomm")) continue;
-            compatibleProfiles.add(p);
+            String renderer = p.optString("webgl_renderer", "");
+            if (renderer.isEmpty()) {
+                renderer = DeviceProfilePool.deduceWebglRenderer(pName);
+            }
+
+            if (is610) {
+                if (renderer.contains("610") || DeviceProfilePool.isAdreno610Device(pName)) {
+                    compatibleProfiles.add(p);
+                }
+            } else if (matchArm) {
+                if (vendor.equalsIgnoreCase("ARM") && (renderer.equalsIgnoreCase(nativeRenderer) || !renderer.contains("Adreno"))) {
+                    compatibleProfiles.add(p);
+                }
+            } else if (matchQualcomm) {
+                if (vendor.equalsIgnoreCase("Qualcomm") && (renderer.equalsIgnoreCase(nativeRenderer) || !renderer.contains("Mali"))) {
+                    compatibleProfiles.add(p);
+                }
+            }
         }
 
         if (compatibleProfiles.isEmpty()) {
-            for (int i = 0; i < allProfiles.length(); i++) {
-                JSONObject p = allProfiles.optJSONObject(i);
+            JSONArray staticProfiles = DeviceProfilePool.getAllStaticProfiles();
+            for (int i = 0; i < staticProfiles.length(); i++) {
+                JSONObject p = staticProfiles.optJSONObject(i);
                 if (p == null) continue;
                 String pName = p.optString("name", "");
-                if (pName.toLowerCase().contains("iphone") || pName.toLowerCase().contains("ipad")) continue;
-                String vendor = p.optString("webgl_vendor", "");
-                if (vendor.isEmpty()) vendor = DeviceProfilePool.deduceWebglVendor(pName);
-                if (matchArm && vendor.equalsIgnoreCase("ARM")) {
+                String pNameLower = pName.toLowerCase();
+                if (pNameLower.contains("iphone") || pNameLower.contains("ipad")) continue;
+                String renderer = p.optString("webgl_renderer", "");
+                if (renderer.isEmpty()) renderer = DeviceProfilePool.deduceWebglRenderer(pName);
+
+                if (is610) {
+                    if (renderer.contains("610") || DeviceProfilePool.isAdreno610Device(pName)) {
+                        compatibleProfiles.add(p);
+                    }
+                } else if (matchQualcomm && renderer.equalsIgnoreCase(nativeRenderer)) {
                     compatibleProfiles.add(p);
-                } else if (matchQualcomm && vendor.equalsIgnoreCase("Qualcomm")) {
+                } else if (matchArm && renderer.equalsIgnoreCase(nativeRenderer)) {
                     compatibleProfiles.add(p);
                 }
             }
@@ -1609,7 +1637,7 @@ public class BrowserActivity extends AppCompatActivity {
                     p.optInt("screen_width") + "x" + p.optInt("screen_height") + ")" + lockSuffix;
         }
 
-        String archTag = matchArm ? "ARM Mali" : (matchQualcomm ? "Snapdragon" : "Universal");
+        String archTag = is610 ? "Snapdragon 680 / Adreno 610" : (matchArm ? "ARM Mali" : (matchQualcomm ? "Snapdragon" : "Universal"));
         new AlertDialog.Builder(this)
                 .setTitle("Select Compatible Profile (" + archTag + " - " + compatibleProfiles.size() + " Available)")
                 .setItems(names, (dialog, which) -> {

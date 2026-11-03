@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sigma Personality Calculator | Discover Your Archetype - YieldMatrix</title>
+  <meta name="description" content="Discover if you possess the rare Sigma Archetype or conventional personality. Take the 60-second quantitative psychological assessment on YieldMatrix.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#070a12">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <header>
+    <div class="container navbar">
+      <a href="/" class="logo">
+        <div class="logo-icon">YM</div>
+        <span>YieldMatrix</span>
+        <span class="badge-pos">DeFi v2.4</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/" style="display: inline-flex; align-items: center; gap: 6px;"><span>←</span> <span>Staking Calculator</span></a></li>
+        <li><a href="/#methodology">Methodology</a></li>
+        <li><a href="/#faq">FAQ</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Quiz Hero Section -->
+    <section class="quiz-hero">
+      <div class="sigma-pill" style="margin-bottom: 12px;">⚡ Quantitative Archetype Assessment</div>
+      <h1>Sigma Personality Calculator</h1>
+      <p>Evaluate your decision-making autonomy, emotional detachment, and social sovereignty through 7 institutional psychometric questions.</p>
+    </section>
+
+    <div class="quiz-container">
+      
+      <!-- Progress Bar -->
+      <div class="quiz-progress-wrapper" id="quiz-progress-wrapper">
+        <div class="quiz-progress-header">
+          <span id="quiz-step-indicator">Question 1 of 7</span>
+          <span id="quiz-percent-indicator">14% Complete</span>
+        </div>
+        <div class="quiz-progress-track">
+          <div class="quiz-progress-fill" id="quiz-progress-bar"></div>
+        </div>
+      </div>
+
+      <!-- Main Interactive Question Card -->
+      <div class="quiz-card" id="quiz-card">
+        <div class="quiz-category-tag" id="quiz-category">1. Autonomy & Market Narratives</div>
+        <h2 class="quiz-question-title" id="quiz-question-text">When a massive prevailing narrative sweeps the market or social sphere, what is your initial instinct?</h2>
+        
+        <div class="quiz-options-list" id="quiz-options-container">
+          <!-- Injected via JavaScript -->
+        </div>
+
+        <div class="quiz-nav-row">
+          <button type="button" class="btn-quiz-back" id="btn-quiz-prev" disabled>← Previous</button>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Select an option to advance automatically</span>
+        </div>
+      </div>
+
+      <!-- Calculating / Processing Animation State -->
+      <div class="quiz-card quiz-calculating-box" id="quiz-calculating-box">
+        <div class="calc-radar-animation"></div>
+        <h3 class="calc-status-text" id="calc-status-text">Synthesizing Cognitive Response Vectors...</h3>
+        <p class="calc-status-sub" id="calc-status-sub">Benchmarking against 120,000+ institutional personality profiles</p>
+      </div>
+
+      <!-- Results Screen with Smartlink Integration -->
+      <div class="quiz-results-card" id="quiz-results-card">
+        <div class="result-badge-pill" id="res-badge-pill">
+          <span>👑</span>
+          <span id="res-archetype-code">S-TIER ARCHETYPE</span>
+        </div>
+        <h2 class="result-title" id="res-title">The Sovereign Sigma (Lone Wolf Strategist)</h2>
+        <div class="result-tagline" id="res-tagline">"Calculates in silence, executes with conviction, owes allegiance to no hierarchy."</div>
+        
+        <p class="result-desc" id="res-description">
+          Your psychological evaluation demonstrates an exceptionally high degree of cognitive independence (97.4th percentile). You operate entirely outside conventional social pyramids, feeling zero impulse to dominate followers or conform to group consensus. In high-volatility environments, you maintain emotional detachment and execute strategic moves when everyone else panics.
+        </p>
+
+        <!-- Attribute Radar Breakdown -->
+        <div class="result-metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span>Cognitive Sovereignty</span>
+              <span class="metric-val" id="metric-autonomy">98%</span>
+            </div>
+            <div class="metric-track">
+              <div class="metric-fill" id="fill-autonomy" style="width: 98%;"></div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <span>Strategic Silence</span>
+              <span class="metric-val" id="metric-silence">94%</span>
+            </div>
+            <div class="metric-track">
+              <div class="metric-fill" id="fill-silence" style="width: 94%;"></div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <span>Emotional Detachment</span>
+              <span class="metric-val" id="metric-detachment">91%</span>
+            </div>
+            <div class="metric-track">
+              <div class="metric-fill" id="fill-detachment" style="width: 91%;"></div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <span>High-Risk Conviction</span>
+              <span class="metric-val" id="metric-conviction">96%</span>
+            </div>
+            <div class="metric-track">
+              <div class="metric-fill" id="fill-conviction" style="width: 96%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- High-Conversion Smartlink Offer Integration -->
+        <div class="smartlink-reveal-box">
+          <div class="smartlink-exclusive-badge">🔒 Exclusive Match & Personality Portal</div>
+          <h3 id="smartlink-headline">Access Your Verified Network & Full Profile Dossier</h3>
+          <p id="smartlink-subtext">
+            Your evaluation qualifies you for our exclusive, verified compatibility network. Connect with like-minded high-conviction individuals and unlock your unredacted behavioral dossier.
+          </p>
+          <a id="smartlink-cta-btn" href="https://data527.click/4952be3a192bb16a8020/889380b928/?placementName=default" target="_blank" rel="noopener noreferrer" class="btn-smartlink-cta">
+            <span style="font-size: 1.3rem;">✨</span>
+            <span id="smartlink-btn-text">Access Verified Partner Network Now</span>
+            <span class="btn-arrow">→</span>
+          </a>
+          <div class="smartlink-disclaimer-note">
+            Instant 256-Bit SSL Redirect • Verified Personality Match • 100% Confidential
+          </div>
+        </div>
+
+        <div style="margin-top: 28px; text-align: center;">
+          <button type="button" class="btn-quiz-back" id="btn-retake-quiz">↺ Retake Personality Assessment</button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Compliance Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h4>YieldMatrix Finance</h4>
+          <p>An institutional-grade crypto yield modeling utility. YieldMatrix provides analytical simulations based on historic blockchain telemetry and active PoS inflation schedules.</p>
+        </div>
+        <div>
+          <h4>Documentation</h4>
+          <ul class="footer-links">
+            <li><a href="/">Staking Calculator</a></li>
+            <li><a href="/sigma">Sigma Personality Quiz</a></li>
+            <li><a href="/#methodology">Validator Methodology</a></li>
+            <li><a href="/#faq">Consensus FAQ</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Compliance & Legal</h4>
+          <ul class="footer-links">
+            <li><a href="/">Privacy Policy</a></li>
+            <li><a href="/">Terms of Service</a></li>
+            <li><a href="/">Financial Disclaimer</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="disclaimer-box">
+        <strong>Psychological Assessment Notice:</strong> The Sigma Personality Calculator is an analytical psychometric modeling simulation based on self-reported decision-making preferences. It is provided for informational and educational entertainment purposes.
+      </div>
+
+      <div class="copyright-bar">
+        <span>&copy; 2026 YieldMatrix Finance. All rights reserved.</span>
+        <span>Built with ultra-lean PWA architecture.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Quiz Logic Script & Smartlink Engine -->
+  <script src="/sigma.js"></script>
+
+</body>
+</html>

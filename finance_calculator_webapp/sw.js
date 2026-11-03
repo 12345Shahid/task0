@@ -1,9 +1,12 @@
-const CACHE_NAME = 'yieldmatrix-v1.0.2';
+const CACHE_NAME = 'yieldmatrix-v1.0.3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
   '/app.js',
+  '/sigma',
+  '/sigma.html',
+  '/sigma.js',
   '/manifest.json'
 ];
 

@@ -157,18 +157,11 @@ public class BrowserActivity extends AppCompatActivity {
             FingerprintManager.setActiveTimezone(timezone);
             for (BrowserTab t : tabList) {
                 if (!t.isNative) {
-                    boolean tzChanged = (timezone != null && !timezone.equals(t.timezone));
                     t.timezone = timezone;
                     t.geoCity = city;
                     t.savedIp = ip;
                     if (t.webView != null) {
                         FingerprintManager.applyFingerprint(t.webView, t.profile, t.timezone, t.noiseSeed);
-                        if (tzChanged) {
-                            String curUrl = t.webView.getUrl();
-                            if (curUrl != null && !curUrl.isEmpty() && !curUrl.contains("about:blank") && !curUrl.equals(HOME_URL)) {
-                                t.webView.reload();
-                            }
-                        }
                     }
                 }
             }
@@ -515,7 +508,7 @@ public class BrowserActivity extends AppCompatActivity {
             url = "https://duckduckgo.com/?q=" + Uri.encode(query);
         }
 
-        if (WebViewProxyManager.isProxyActive() && WebViewProxyManager.isDomainWhitelisted(url)) {
+        if (WebViewProxyManager.isDomainWhitelisted(url)) {
             WebViewProxyManager.resumeProxy();
         }
 
@@ -547,7 +540,7 @@ public class BrowserActivity extends AppCompatActivity {
         double seed = new java.util.Random().nextDouble();
         String sessTag = "tab-" + UUID.randomUUID().toString().substring(0, 8);
         String liveProxyTz = WebViewProxyManager.getLastResolvedTimezone();
-        String tz = (liveProxyTz != null && !liveProxyTz.trim().isEmpty()) ? liveProxyTz.trim() : "America/New_York";
+        String tz = (liveProxyTz != null && !liveProxyTz.trim().isEmpty()) ? liveProxyTz.trim() : "America/Chicago";
 
         if (!isNative) {
             if (profile == null) {
@@ -566,12 +559,10 @@ public class BrowserActivity extends AppCompatActivity {
                 if (proxyTz != null && !proxyTz.trim().isEmpty()) {
                     tz = proxyTz.trim();
                 } else {
-                    tz = "America/New_York";
+                    tz = "America/Chicago";
                 }
             } else if (profile != null && profile.has("timezone")) {
-                tz = profile.optString("timezone", "America/New_York");
-            } else {
-                tz = "America/New_York";
+                tz = profile.optString("timezone", "America/Chicago");
             }
         }
 
@@ -968,7 +959,6 @@ public class BrowserActivity extends AppCompatActivity {
                             FingerprintManager.setActiveTimezone(tab.timezone);
                             runOnUiThread(() -> {
                                 FingerprintManager.applyFingerprint(view, tab.profile, tab.timezone, tab.noiseSeed);
-                                view.reload();
                             });
                         }
                     });
@@ -1333,7 +1323,6 @@ public class BrowserActivity extends AppCompatActivity {
                 updateProxyBadgeUI(false);
                 Toast.makeText(this, "🛑 Proxy Stopped — Zero Bandwidth Used (All Direct)", Toast.LENGTH_SHORT).show();
             } else {
-                WebViewProxyManager.resetProxyCoolOff();
                 WebViewProxyManager.resumeProxy(() -> {
                     if (browser != null) {
                         browser.reload();
@@ -1573,64 +1562,36 @@ public class BrowserActivity extends AppCompatActivity {
         java.util.List<JSONObject> compatibleProfiles = new java.util.ArrayList<>();
         String nativeVendor = DeviceProfilePool.getDetectedNativeGpuVendor();
         if (nativeVendor == null || nativeVendor.isEmpty()) {
-            nativeVendor = "Qualcomm";
-        }
-        String nativeRenderer = DeviceProfilePool.getDetectedNativeGpuRenderer();
-        if (nativeRenderer == null || nativeRenderer.isEmpty()) {
-            nativeRenderer = "Adreno (TM) 610";
+            nativeVendor = "ARM";
         }
         boolean matchQualcomm = nativeVendor.toLowerCase().contains("qualcomm");
         boolean matchArm = nativeVendor.toLowerCase().contains("arm");
-        boolean is610 = nativeRenderer.contains("610");
 
         for (int i = 0; i < allProfiles.length(); i++) {
             JSONObject p = allProfiles.optJSONObject(i);
             if (p == null) continue;
-            String pName = p.optString("name", "");
-            String pNameLower = pName.toLowerCase();
-            if (pNameLower.contains("iphone") || pNameLower.contains("ipad")) continue;
+            String pName = p.optString("name", "").toLowerCase();
+            if (pName.contains("iphone") || pName.contains("ipad")) continue;
             String vendor = p.optString("webgl_vendor", "");
             if (vendor.isEmpty()) {
-                vendor = DeviceProfilePool.deduceWebglVendor(pName);
+                vendor = DeviceProfilePool.deduceWebglVendor(p.optString("name", ""));
             }
-            String renderer = p.optString("webgl_renderer", "");
-            if (renderer.isEmpty()) {
-                renderer = DeviceProfilePool.deduceWebglRenderer(pName);
-            }
-
-            if (is610) {
-                if (renderer.contains("610") || DeviceProfilePool.isAdreno610Device(pName)) {
-                    compatibleProfiles.add(p);
-                }
-            } else if (matchArm) {
-                if (vendor.equalsIgnoreCase("ARM") && (renderer.equalsIgnoreCase(nativeRenderer) || !renderer.contains("Adreno"))) {
-                    compatibleProfiles.add(p);
-                }
-            } else if (matchQualcomm) {
-                if (vendor.equalsIgnoreCase("Qualcomm") && (renderer.equalsIgnoreCase(nativeRenderer) || !renderer.contains("Mali"))) {
-                    compatibleProfiles.add(p);
-                }
-            }
+            if (matchArm && !vendor.equalsIgnoreCase("ARM")) continue;
+            if (matchQualcomm && !vendor.equalsIgnoreCase("Qualcomm")) continue;
+            compatibleProfiles.add(p);
         }
 
         if (compatibleProfiles.isEmpty()) {
-            JSONArray staticProfiles = DeviceProfilePool.getAllStaticProfiles();
-            for (int i = 0; i < staticProfiles.length(); i++) {
-                JSONObject p = staticProfiles.optJSONObject(i);
+            for (int i = 0; i < allProfiles.length(); i++) {
+                JSONObject p = allProfiles.optJSONObject(i);
                 if (p == null) continue;
                 String pName = p.optString("name", "");
-                String pNameLower = pName.toLowerCase();
-                if (pNameLower.contains("iphone") || pNameLower.contains("ipad")) continue;
-                String renderer = p.optString("webgl_renderer", "");
-                if (renderer.isEmpty()) renderer = DeviceProfilePool.deduceWebglRenderer(pName);
-
-                if (is610) {
-                    if (renderer.contains("610") || DeviceProfilePool.isAdreno610Device(pName)) {
-                        compatibleProfiles.add(p);
-                    }
-                } else if (matchQualcomm && renderer.equalsIgnoreCase(nativeRenderer)) {
+                if (pName.toLowerCase().contains("iphone") || pName.toLowerCase().contains("ipad")) continue;
+                String vendor = p.optString("webgl_vendor", "");
+                if (vendor.isEmpty()) vendor = DeviceProfilePool.deduceWebglVendor(pName);
+                if (matchArm && vendor.equalsIgnoreCase("ARM")) {
                     compatibleProfiles.add(p);
-                } else if (matchArm && renderer.equalsIgnoreCase(nativeRenderer)) {
+                } else if (matchQualcomm && vendor.equalsIgnoreCase("Qualcomm")) {
                     compatibleProfiles.add(p);
                 }
             }
@@ -1648,7 +1609,7 @@ public class BrowserActivity extends AppCompatActivity {
                     p.optInt("screen_width") + "x" + p.optInt("screen_height") + ")" + lockSuffix;
         }
 
-        String archTag = is610 ? "Snapdragon 680 / Adreno 610" : (matchArm ? "ARM Mali" : (matchQualcomm ? "Snapdragon" : "Universal"));
+        String archTag = matchArm ? "ARM Mali" : (matchQualcomm ? "Snapdragon" : "Universal");
         new AlertDialog.Builder(this)
                 .setTitle("Select Compatible Profile (" + archTag + " - " + compatibleProfiles.size() + " Available)")
                 .setItems(names, (dialog, which) -> {
@@ -1667,9 +1628,9 @@ public class BrowserActivity extends AppCompatActivity {
                         CloudProfileLockManager.acquireLock(this, selName, "");
 
                         String proxyTz = WebViewProxyManager.getLastResolvedTimezone();
-                        String tzToUse = (WebViewProxyManager.isProxyActive() && proxyTz != null && !proxyTz.trim().isEmpty())
+                        String tzToUse = (proxyTz != null && !proxyTz.trim().isEmpty())
                                 ? proxyTz.trim()
-                                : (selected != null && selected.has("timezone") ? selected.optString("timezone", "America/New_York") : "America/New_York");
+                                : selected.optString("timezone", "America/New_York");
 
                         FingerprintManager.setCurrentProfile(selected);
                         FingerprintManager.setActiveTimezone(tzToUse);

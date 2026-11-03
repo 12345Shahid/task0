@@ -39,7 +39,7 @@ public class DeviceProfilePool {
     private static final String TAG = "DeviceProfilePool";
     private static final String SUPABASE_URL = "https://qxzozsdgrgahvgzpsfmm.supabase.co";
     private static final String ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4em96c2RncmdhaHZnenBzZm1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MDY4NjAsImV4cCI6MjA5NTM4Mjg2MH0.inUzMp-S9BRjNQYHynTAOPRo4EeY3Whqv9okvEeySB4";
-    private static final String CACHE_FILE = "device_profiles_cache_v55.json";
+    private static final String CACHE_FILE = "device_profiles_cache.json";
 
     private static final List<JSONObject> sDynamicProfiles = new CopyOnWriteArrayList<>();
     private static volatile boolean sInitialized = false;
@@ -724,36 +724,6 @@ public class DeviceProfilePool {
         {"Samsung Galaxy A23",
          "Mozilla/5.0 (Linux; Android 13; SM-A235F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
          "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Xiaomi Redmi 10C",
-         "Mozilla/5.0 (Linux; Android 13; 220333QAG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
-         "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Xiaomi Redmi 10C",
-         "Mozilla/5.0 (Linux; Android 13; 220333QAG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
-         "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Motorola Moto G52",
-         "Mozilla/5.0 (Linux; Android 13; XT2221-1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
-         "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Motorola Moto G52",
-         "Mozilla/5.0 (Linux; Android 13; XT2221-1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
-         "America/Phoenix", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Motorola Moto G32",
-         "Mozilla/5.0 (Linux; Android 13; XT2235-2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
-         "America/Los_Angeles", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Motorola Moto G32",
-         "Mozilla/5.0 (Linux; Android 13; XT2235-2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
-         "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Realme 9",
-         "Mozilla/5.0 (Linux; Android 13; RMX3521) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.179 Mobile Safari/537.36",
-         "America/New_York", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Oppo A96",
-         "Mozilla/5.0 (Linux; Android 13; CPH2333) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36",
-         "America/Chicago", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Vivo Y35",
-         "Mozilla/5.0 (Linux; Android 13; V2205) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.201 Mobile Safari/537.36",
-         "America/Detroit", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-        {"Honor X8",
-         "Mozilla/5.0 (Linux; Android 13; TFY-LX1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
-         "America/Denver", "en-US", "412", "915", "Qualcomm", "Adreno (TM) 610"},
         {"Xiaomi 14 Ultra",
          "Mozilla/5.0 (Linux; Android 14; 24031PN0DC) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.207 Mobile Safari/537.36",
          "America/Detroit", "en-US", "414", "896", "Qualcomm", "Adreno (TM) 750"},
@@ -1088,51 +1058,19 @@ public class DeviceProfilePool {
      * Get all active profiles (dynamic from Supabase/cache if loaded, otherwise static 250).
      */
     public static JSONArray getAllProfiles() {
-        String renderer = getDetectedNativeGpuRenderer();
-        boolean is610 = (renderer != null && renderer.contains("610"));
-
         if (!sDynamicProfiles.isEmpty()) {
-            if (is610) {
-                int count610 = 0;
-                for (JSONObject p : sDynamicProfiles) {
-                    String r = p.optString("webgl_renderer", "");
-                    if (r.contains("610") || isAdreno610Device(p.optString("name", ""))) {
-                        count610++;
-                    }
-                }
-                if (count610 >= 10) {
-                    JSONArray arr = new JSONArray();
-                    for (JSONObject obj : sDynamicProfiles) arr.put(obj);
-                    return arr;
-                }
-                // Merge dynamic profiles with static Adreno 610 profiles so Adreno 610 is always available
-                JSONArray staticArr = getAllStaticProfiles();
-                JSONArray merged = new JSONArray();
-                for (JSONObject obj : sDynamicProfiles) merged.put(obj);
-                for (int i = 0; i < staticArr.length(); i++) {
-                    JSONObject sp = staticArr.optJSONObject(i);
-                    if (sp != null) {
-                        String r = sp.optString("webgl_renderer", "");
-                        if (r.contains("610") || isAdreno610Device(sp.optString("name", ""))) {
-                            merged.put(sp);
-                        }
-                    }
-                }
-                return merged;
-            } else {
-                JSONArray arr = new JSONArray();
-                for (JSONObject obj : sDynamicProfiles) {
-                    arr.put(obj);
-                }
-                return arr;
+            JSONArray arr = new JSONArray();
+            for (JSONObject obj : sDynamicProfiles) {
+                arr.put(obj);
             }
+            return arr;
         }
         return getAllStaticProfiles();
     }
 
     private static java.util.List<JSONObject> sExpandedProfiles = null;
 
-    public static synchronized JSONArray getAllStaticProfiles() {
+    private static synchronized JSONArray getAllStaticProfiles() {
         if (sExpandedProfiles != null && sExpandedProfiles.size() >= 600) {
             JSONArray arr = new JSONArray();
             for (JSONObject p : sExpandedProfiles) arr.put(p);
@@ -1213,29 +1151,7 @@ public class DeviceProfilePool {
                 {"Xiaomi 13T Pro", "23078PND5G", "412", "915", "ARM", "Mali-G715-Immortalis MC11"},
                 {"Xiaomi 13T", "2306EPN60G", "412", "915", "ARM", "Mali-G610 MC4"},
                 {"Xiaomi Redmi K60 Ultra", "23078RKD5C", "412", "915", "ARM", "Mali-G715-Immortalis MC11"},
-                {"OnePlus Nord 3", "CPH2493", "412", "915", "ARM", "Mali-G710 MC10"},
-                // Authentic Qualcomm Snapdragon 680 / Adreno (TM) 610 devices
-                {"Xiaomi Redmi Note 11", "2201117TG", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Xiaomi Redmi Note 11 NFC", "2201117TY", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Samsung Galaxy A23", "SM-A235F", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Samsung Galaxy A23 4G", "SM-A235M", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Xiaomi Redmi 10C", "220333QAG", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Motorola Moto G52", "XT2221-1", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Motorola Moto G52 Dual", "XT2221-2", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Motorola Moto G32", "XT2235-2", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Realme 9", "RMX3521", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Realme 9i", "RMX3491", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Oppo A96", "CPH2333", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Oppo A76", "CPH2375", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Vivo Y35", "V2205", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Vivo Y36 4G", "V2247", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Vivo Y22s", "V2206", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Honor X8", "TFY-LX1", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Honor X7", "CMA-LX1", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Xiaomi Poco M3", "M2010J19CG", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Xiaomi Redmi 9T", "M2010J19SG", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Motorola Moto G Power", "XT2041DL", "412", "915", "Qualcomm", "Adreno (TM) 610"},
-                {"Realme 7i", "RMX2103", "412", "915", "Qualcomm", "Adreno (TM) 610"}
+                {"OnePlus Nord 3", "CPH2493", "412", "915", "ARM", "Mali-G710 MC10"}
         };
 
         String[] chromeVersions = {
@@ -1246,9 +1162,11 @@ public class DeviceProfilePool {
 
         String[] androidVersions = {"14; K", "13; K", "15; K"};
 
-        String activeProxyTz = WebViewProxyManager.getLastResolvedTimezone();
-        String defaultTz = (activeProxyTz != null && !activeProxyTz.trim().isEmpty()) ? activeProxyTz.trim() : "America/New_York";
-        String[] timezones = { defaultTz };
+        String[] timezones = {
+                "America/New_York", "America/Chicago", "America/Denver",
+                "America/Los_Angeles", "America/Phoenix", "America/Detroit",
+                "America/Indiana/Indianapolis"
+        };
 
         int count = list.size();
         int mIdx = 0;
@@ -1304,28 +1222,11 @@ public class DeviceProfilePool {
         return getRandomAndroidProfile();
     }
 
-    public static boolean isAdreno610Device(String name) {
-        if (name == null) return false;
-        String lower = name.toLowerCase();
-        return lower.contains("redmi note 11") || lower.contains("a23") || lower.contains("moto g52") ||
-                lower.contains("g32") || lower.contains("redmi 10c") || lower.contains("realme 9") ||
-                lower.contains("a96") || lower.contains("a76") || lower.contains("y35") ||
-                lower.contains("y36") || lower.contains("y22s") || lower.contains("honor x8") ||
-                lower.contains("honor x7") || lower.contains("poco m3") || lower.contains("redmi 9t") ||
-                lower.contains("g power") || lower.contains("realme 7i") || lower.contains("sm-t500") ||
-                lower.contains("2201117") || lower.contains("sm-a235") || lower.contains("220333") ||
-                lower.contains("xt2221") || lower.contains("xt2235") || lower.contains("rmx3521") ||
-                lower.contains("rmx3491") || lower.contains("cph2333") || lower.contains("cph2375") ||
-                lower.contains("v2205") || lower.contains("v2247") || lower.contains("v2206") ||
-                lower.contains("tfy-lx1") || lower.contains("cma-lx1") || lower.contains("m2010j19") ||
-                lower.contains("xt2041") || lower.contains("rmx2103");
-    }
-
     public static String deduceWebglVendor(String name) {
         if (name == null) return "Qualcomm";
-        if (isAdreno610Device(name)) return "Qualcomm";
         String lower = name.toLowerCase();
         if (lower.contains("iphone") || lower.contains("ipad")) return "Apple Inc.";
+        if (lower.contains("redmi note 11") || lower.contains("a23") || lower.contains("moto g52") || lower.contains("g32")) return "Qualcomm";
         if (lower.contains("13t") || lower.contains("dimensity") || lower.contains("k60 ultra") ||
                 lower.contains("pixel 9") || lower.contains("pixel 8") || lower.contains("pixel 7") ||
                 lower.contains("pixel 6") || lower.contains("pixel fold") || lower.contains("nord 3") ||
@@ -1341,9 +1242,9 @@ public class DeviceProfilePool {
 
     public static String deduceWebglRenderer(String name) {
         if (name == null) return "Adreno (TM) 610";
-        if (isAdreno610Device(name)) return "Adreno (TM) 610";
         String lower = name.toLowerCase();
         if (lower.contains("iphone") || lower.contains("ipad")) return "Apple GPU";
+        if (lower.contains("redmi note 11") || lower.contains("a23") || lower.contains("moto g52") || lower.contains("g32")) return "Adreno (TM) 610";
         if (lower.contains("13t pro") || lower.contains("k60 ultra") || lower.contains("dimensity 9200")) return "Mali-G715-Immortalis MC11";
         if (lower.contains("pixel 9") || lower.contains("pixel 8")) return "Mali-G715-Immortalis MC10";
         if (lower.contains("pixel 7") || lower.contains("pixel 6") || lower.contains("pixel fold")) return "Mali-G710";
@@ -1440,104 +1341,64 @@ public class DeviceProfilePool {
      */
     public static JSONObject getRandomAndroidProfile() {
         try {
-            String rendererDetect = getDetectedNativeGpuRenderer();
-            if (rendererDetect == null || rendererDetect.isEmpty()) rendererDetect = "Adreno (TM) 610";
-            boolean isAdreno610 = rendererDetect.contains("610");
-
             JSONArray all = getAllProfiles();
             java.util.List<JSONObject> list = new java.util.ArrayList<>();
             String vendorDetect = getDetectedNativeGpuVendor();
             if (vendorDetect == null || vendorDetect.isEmpty()) vendorDetect = "Qualcomm";
             boolean matchQualcomm = vendorDetect.toLowerCase().contains("qualcomm");
             boolean matchArm = vendorDetect.toLowerCase().contains("arm");
-
             for (int i = 0; i < all.length(); i++) {
                 JSONObject p = all.getJSONObject(i);
-                String name = p.optString("name", "");
-                String nameLower = name.toLowerCase();
-                if (nameLower.contains("iphone") || nameLower.contains("ipad")) {
+                String name = p.optString("name", "").toLowerCase();
+                if (name.contains("iphone") || name.contains("ipad")) {
                     continue;
                 }
                 String vendor = p.optString("webgl_vendor", "");
                 if (vendor.isEmpty()) {
-                    vendor = deduceWebglVendor(name);
+                    vendor = deduceWebglVendor(p.optString("name", ""));
                 }
-                String renderer = p.optString("webgl_renderer", "");
-                if (renderer.isEmpty()) {
-                    renderer = deduceWebglRenderer(name);
+                if (matchQualcomm && !vendor.equalsIgnoreCase("Qualcomm")) {
+                    continue;
+                } else if (matchArm && !vendor.equalsIgnoreCase("ARM")) {
+                    continue;
                 }
-
-                if (isAdreno610) {
-                    if (renderer.contains("610") || isAdreno610Device(name)) {
-                        list.add(p);
-                    }
-                } else if (matchQualcomm) {
-                    if (vendor.equalsIgnoreCase("Qualcomm") && (renderer.equalsIgnoreCase(rendererDetect) || !renderer.contains("Mali"))) {
-                        list.add(p);
-                    }
-                } else if (matchArm) {
-                    if (vendor.equalsIgnoreCase("ARM") && (renderer.equalsIgnoreCase(rendererDetect) || !renderer.contains("Adreno"))) {
-                        list.add(p);
-                    }
-                }
+                list.add(p);
             }
-
             if (!list.isEmpty()) {
-                List<JSONObject> exactGpuMatches = new ArrayList<>();
-                for (JSONObject p : list) {
-                    String r = p.optString("webgl_renderer", "");
-                    if (r.isEmpty()) r = deduceWebglRenderer(p.optString("name", ""));
-                    if (isAdreno610) {
-                        if (r.contains("610") || isAdreno610Device(p.optString("name", ""))) {
+                String rendererDetect = getDetectedNativeGpuRenderer();
+                if (rendererDetect != null && !rendererDetect.isEmpty()) {
+                    List<JSONObject> exactGpuMatches = new ArrayList<>();
+                    for (JSONObject p : list) {
+                        String r = p.optString("webgl_renderer", "");
+                        if (r.equalsIgnoreCase(rendererDetect)) {
                             exactGpuMatches.add(p);
                         }
-                    } else if (r.equalsIgnoreCase(rendererDetect)) {
-                        exactGpuMatches.add(p);
                     }
-                }
-                if (!exactGpuMatches.isEmpty()) {
-                    return exactGpuMatches.get(new Random().nextInt(exactGpuMatches.size()));
+                    if (!exactGpuMatches.isEmpty()) {
+                        return exactGpuMatches.get(new Random().nextInt(exactGpuMatches.size()));
+                    }
                 }
                 return list.get(new Random().nextInt(list.size()));
             }
-
-            // Fallback: If list was empty, pull directly from static profiles
-            JSONArray staticAll = getAllStaticProfiles();
-            for (int i = 0; i < staticAll.length(); i++) {
-                JSONObject p = staticAll.getJSONObject(i);
-                String name = p.optString("name", "");
-                String nameLower = name.toLowerCase();
-                if (nameLower.contains("iphone") || nameLower.contains("ipad")) continue;
-                String renderer = p.optString("webgl_renderer", "");
-                if (renderer.isEmpty()) renderer = deduceWebglRenderer(name);
-
-                if (isAdreno610) {
-                    if (renderer.contains("610") || isAdreno610Device(name)) {
-                        list.add(p);
-                    }
-                } else if (matchQualcomm && renderer.equalsIgnoreCase(rendererDetect)) {
+            // Fallback matching hardware architecture strictly
+            for (int i = 0; i < all.length(); i++) {
+                JSONObject p = all.getJSONObject(i);
+                String name = p.optString("name", "").toLowerCase();
+                if (name.contains("iphone") || name.contains("ipad")) {
+                    continue;
+                }
+                String v = p.optString("webgl_vendor", "");
+                if (v.isEmpty()) v = deduceWebglVendor(p.optString("name", ""));
+                if (matchArm && v.equalsIgnoreCase("ARM")) {
                     list.add(p);
-                } else if (matchArm && renderer.equalsIgnoreCase(rendererDetect)) {
+                } else if (matchQualcomm && v.equalsIgnoreCase("Qualcomm")) {
                     list.add(p);
                 }
             }
-
             if (!list.isEmpty()) {
                 return list.get(new Random().nextInt(list.size()));
             }
-
-            // Absolute guarantee: Return authentic Redmi Note 11 (Adreno 610)
-            JSONObject guaranteed = new JSONObject();
-            guaranteed.put("name", "Xiaomi Redmi Note 11");
-            guaranteed.put("model", "2201117TG");
-            guaranteed.put("userAgent", "Mozilla/5.0 (Linux; Android 13; 2201117TG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.113 Mobile Safari/537.36");
-            guaranteed.put("timezone", "America/New_York");
-            guaranteed.put("language", "en-US");
-            guaranteed.put("screen_width", 412);
-            guaranteed.put("screen_height", 915);
-            guaranteed.put("webgl_vendor", "Qualcomm");
-            guaranteed.put("webgl_renderer", "Adreno (TM) 610");
-            return guaranteed;
+            return all.getJSONObject(0);
         } catch (Exception e) {
             return null;
         }
@@ -1578,17 +1439,12 @@ public class DeviceProfilePool {
      */
     public static JSONObject getRandomAndroidProfileExcluding(java.util.Set<String> usedModelNames) {
         try {
-            String rendererDetect = getDetectedNativeGpuRenderer();
-            if (rendererDetect == null || rendererDetect.isEmpty()) rendererDetect = "Adreno (TM) 610";
-            boolean isAdreno610 = rendererDetect.contains("610");
-
             JSONArray all = getAllProfiles();
             java.util.List<JSONObject> available = new java.util.ArrayList<>();
             String vendorDetect = getDetectedNativeGpuVendor();
             if (vendorDetect == null || vendorDetect.isEmpty()) vendorDetect = "Qualcomm";
             boolean matchQualcomm = vendorDetect.toLowerCase().contains("qualcomm");
             boolean matchArm = vendorDetect.toLowerCase().contains("arm");
-
             for (int i = 0; i < all.length(); i++) {
                 JSONObject p = all.getJSONObject(i);
                 String name = p.optString("name", "");
@@ -1600,34 +1456,31 @@ public class DeviceProfilePool {
                 if (vendor.isEmpty()) {
                     vendor = deduceWebglVendor(name);
                 }
-                String renderer = p.optString("webgl_renderer", "");
-                if (renderer.isEmpty()) {
-                    renderer = deduceWebglRenderer(name);
+                if (matchQualcomm && !vendor.equalsIgnoreCase("Qualcomm")) {
+                    continue;
+                } else if (matchArm && !vendor.equalsIgnoreCase("ARM")) {
+                    continue;
                 }
-
-                if (isAdreno610) {
-                    if (!renderer.contains("610") && !isAdreno610Device(name)) {
-                        continue;
-                    }
-                } else if (matchQualcomm) {
-                    if (!vendor.equalsIgnoreCase("Qualcomm") || !renderer.equalsIgnoreCase(rendererDetect)) {
-                        continue;
-                    }
-                } else if (matchArm) {
-                    if (!vendor.equalsIgnoreCase("ARM") || !renderer.equalsIgnoreCase(rendererDetect)) {
-                        continue;
-                    }
-                }
-
                 if (usedModelNames == null || !usedModelNames.contains(name)) {
                     available.add(p);
                 }
             }
-
             if (!available.isEmpty()) {
+                String rendererDetect = getDetectedNativeGpuRenderer();
+                if (rendererDetect != null && !rendererDetect.isEmpty()) {
+                    List<JSONObject> exactGpuMatches = new ArrayList<>();
+                    for (JSONObject p : available) {
+                        String r = p.optString("webgl_renderer", "");
+                        if (r.equalsIgnoreCase(rendererDetect)) {
+                            exactGpuMatches.add(p);
+                        }
+                    }
+                    if (!exactGpuMatches.isEmpty()) {
+                        return exactGpuMatches.get(new Random().nextInt(exactGpuMatches.size()));
+                    }
+                }
                 return available.get(new Random().nextInt(available.size()));
             }
-
             return getRandomAndroidProfile();
         } catch (Exception e) {
             return getRandomAndroidProfile();

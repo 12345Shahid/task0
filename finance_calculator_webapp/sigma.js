@@ -19,8 +19,8 @@
   // --- Questions Database ---
   const questions = [
     {
-      category: '1. Cognitive Autonomy & Consensus',
-      text: 'When a massive prevailing narrative or euphoric consensus sweeps social media and financial circles, what is your instinct?',
+      category: '1. Cognitive Autonomy & Market Narratives',
+      text: 'When a massive prevailing narrative or euphoric consensus sweeps social media and financial circles, what is your initial instinct?',
       options: [
         { letter: 'A', text: 'Immediately distrust the herd; retreat into silence and conduct rigorous independent verification.', score: { sigma: 3, alpha: 1, maverick: 2, consensus: 0 } },
         { letter: 'B', text: 'Step forward publicly, debate the narrative, and rally followers around my stance.', score: { sigma: 1, alpha: 3, maverick: 1, consensus: 0 } },
@@ -39,7 +39,7 @@
       ]
     },
     {
-      category: '3. Chaos & Emotional Detachment',
+      category: '3. Volatility & Emotional Detachment',
       text: 'When black-swan volatility hits and everyone around you enters full-blown panic, what happens inside your mind?',
       options: [
         { letter: 'A', text: 'My heart rate drops; I enter a state of cold, analytical focus and execute calculated moves.', score: { sigma: 3, alpha: 1, maverick: 2, consensus: 0 } },
@@ -167,7 +167,7 @@
   const smartlinkHeadline = document.getElementById('smartlink-headline');
   const smartlinkSubtext = document.getElementById('smartlink-subtext');
 
-  // Wire Smartlink Destination URL immediately
+  // Wire Smartlink Destination URL
   if (smartlinkCtaBtn) {
     smartlinkCtaBtn.href = activeSmartlink;
     smartlinkCtaBtn.addEventListener('click', function(e) {
@@ -181,8 +181,8 @@
     const total = questions.length;
     const progressPercent = Math.round(((index + 1) / total) * 100);
 
-    stepIndicator.textContent = `Question ${index + 1} of ${total}`;
-    percentIndicator.textContent = `${progressPercent}% Complete`;
+    stepIndicator.textContent = `Step 0${index + 1} of 0${total}`;
+    percentIndicator.textContent = `${progressPercent}% Completed`;
     progressBar.style.width = `${progressPercent}%`;
 
     categoryElem.textContent = q.category;
@@ -200,6 +200,7 @@
       btn.innerHTML = `
         <span class="quiz-opt-letter">${opt.letter}</span>
         <span class="quiz-opt-text">${opt.text}</span>
+        <span class="quiz-opt-indicator"></span>
       `;
       btn.addEventListener('click', () => handleOptionSelect(optIdx, opt.score));
       optionsContainer.appendChild(btn);
@@ -225,7 +226,7 @@
       } else {
         finishQuiz();
       }
-    }, 220);
+    }, 240);
   }
 
   // --- Previous Question ---
@@ -261,8 +262,9 @@
     const data = archetypes[chosenKey];
 
     // Transition: Hide question card, show calculating radar
-    quizCard.style.display = 'none';
-    progressWrapper.style.display = 'none';
+    quizCard.style.setProperty('display', 'none', 'important');
+    progressWrapper.style.setProperty('display', 'none', 'important');
+    calcBox.style.setProperty('display', 'block', 'important');
     calcBox.classList.add('active');
 
     const statusUpdates = [
@@ -280,6 +282,7 @@
       } else {
         clearInterval(interval);
         // Reveal Results
+        calcBox.style.setProperty('display', 'none', 'important');
         calcBox.classList.remove('active');
         displayResults(data);
       }
@@ -309,6 +312,7 @@
     smartlinkHeadline.textContent = data.smartlinkHeadline;
     smartlinkSubtext.textContent = data.smartlinkSubtext;
 
+    resultsCard.style.setProperty('display', 'block', 'important');
     resultsCard.classList.add('active');
 
     // Smooth scroll to results
@@ -321,9 +325,10 @@
     selectedOptionHistory = [];
     userScores = { sigma: 0, alpha: 0, maverick: 0, consensus: 0 };
 
+    resultsCard.style.setProperty('display', 'none', 'important');
     resultsCard.classList.remove('active');
-    quizCard.style.display = 'block';
-    progressWrapper.style.display = 'block';
+    quizCard.style.removeProperty('display');
+    progressWrapper.style.removeProperty('display');
 
     renderQuestion(0);
     quizCard.scrollIntoView({ behavior: 'smooth', block: 'start' });

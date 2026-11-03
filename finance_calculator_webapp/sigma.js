@@ -7,10 +7,10 @@
 
   // ============================================================
   // SMARTLINK CONFIGURATION
-  // Replace this URL with your active Datify smartlink:
+  // Example URL: 'https://google.com' (replace with your Datify smartlink)
   // e.g. 'https://app.datify.link/...' or 'https://trk.datify.link/...'
   // ============================================================
-  const DEFAULT_SMARTLINK = 'https://data527.click/4952be3a192bb16a8020/889380b928/?placementName=default';
+  const DEFAULT_SMARTLINK = 'https://google.com';
 
   // Dynamically resolve smartlink (supports ?smartlink= or ?link= URL params)
   const urlParams = new URLSearchParams(window.location.search);
@@ -128,6 +128,8 @@
   let currentIndex = 0;
   let userScores = { sigma: 0, alpha: 0, maverick: 0, consensus: 0 };
   let selectedOptionHistory = [];
+  let evaluatedArchetype = archetypes.sigma;
+  let gateClickCount = 0;
 
   // --- DOM Elements ---
   const stepIndicator = document.getElementById('quiz-step-indicator');
@@ -145,6 +147,14 @@
   const calcStatusText = document.getElementById('calc-status-text');
   const calcStatusSub = document.getElementById('calc-status-sub');
 
+  // 2-Click Gate Elements
+  const gateBox = document.getElementById('quiz-gate-box');
+  const btnGateDownload = document.getElementById('btn-gate-download');
+  const gateLockStatus = document.getElementById('gate-lock-status');
+  const gateBtnIcon = document.getElementById('gate-btn-icon');
+  const gateBtnText = document.getElementById('gate-btn-text');
+  const gateHelperText = document.getElementById('gate-helper-text');
+
   // Results Elements
   const resultsCard = document.getElementById('quiz-results-card');
   const resArchetypeCode = document.getElementById('res-archetype-code');
@@ -161,17 +171,62 @@
   const fillConviction = document.getElementById('fill-conviction');
   const btnRetake = document.getElementById('btn-retake-quiz');
 
-  // Smartlink Elements
+  // Secondary Bottom Smartlink Elements
   const smartlinkCtaBtn = document.getElementById('smartlink-cta-btn');
   const smartlinkBtnText = document.getElementById('smartlink-btn-text');
   const smartlinkHeadline = document.getElementById('smartlink-headline');
   const smartlinkSubtext = document.getElementById('smartlink-subtext');
 
-  // Wire Smartlink Destination URL
   if (smartlinkCtaBtn) {
     smartlinkCtaBtn.href = activeSmartlink;
-    smartlinkCtaBtn.addEventListener('click', function(e) {
-      console.log('[YieldMatrix] Smartlink clicked. Directing to:', activeSmartlink);
+  }
+
+  // --- Initialize Gate Button Destination ---
+  if (btnGateDownload) {
+    btnGateDownload.href = activeSmartlink;
+
+    // --- TWO-CLICK SMARTLINK GATE LOGIC ---
+    btnGateDownload.addEventListener('click', function(e) {
+      if (gateClickCount === 0) {
+        // FIRST CLICK:
+        // Allows native browser opening of activeSmartlink (e.g. https://google.com or Datify) in a new tab!
+        gateClickCount = 1;
+        console.log('[YieldMatrix] 1st Gate Click: Opening link:', activeSmartlink);
+
+        // Instantly transition button to Unlocked "See Result" state for the 2nd click!
+        setTimeout(() => {
+          btnGateDownload.classList.add('unlocked-ready');
+          btnGateDownload.removeAttribute('target');
+          btnGateDownload.setAttribute('href', 'javascript:void(0)');
+
+          if (gateLockStatus) {
+            gateLockStatus.className = 'gate-lock-pill unlocked';
+            gateLockStatus.textContent = '🔓 Report Unlocked!';
+          }
+          if (gateBtnIcon) {
+            gateBtnIcon.textContent = '👁️';
+          }
+          if (gateBtnText) {
+            gateBtnText.textContent = 'See My Result & Dossier';
+          }
+          if (gateHelperText) {
+            gateHelperText.className = 'gate-helper-text ready';
+            gateHelperText.textContent = '✅ Verification confirmed! Click above to reveal your personality result.';
+          }
+        }, 150);
+
+      } else {
+        // SECOND CLICK:
+        // Prevent outbound navigation and reveal the actual personality result!
+        e.preventDefault();
+        console.log('[YieldMatrix] 2nd Gate Click: Revealing personality results!');
+
+        // Hide gate box
+        gateBox.style.setProperty('display', 'none', 'important');
+
+        // Reveal results card
+        displayResults(evaluatedArchetype);
+      }
     });
   }
 
@@ -209,16 +264,13 @@
 
   // --- Handle Option Selection ---
   function handleOptionSelect(optionIdx, score) {
-    // Record selection
     selectedOptionHistory[currentIndex] = optionIdx;
 
-    // Highlight selected visually
     const buttons = optionsContainer.querySelectorAll('.quiz-option-btn');
     buttons.forEach((b, i) => {
       b.classList.toggle('selected', i === optionIdx);
     });
 
-    // Small delay for natural micro-interaction before advancing
     setTimeout(() => {
       if (currentIndex < questions.length - 1) {
         currentIndex++;
@@ -239,7 +291,6 @@
 
   // --- Finish Quiz & Calculate Result ---
   function finishQuiz() {
-    // Tally total scores
     userScores = { sigma: 0, alpha: 0, maverick: 0, consensus: 0 };
     selectedOptionHistory.forEach((optIdx, qIdx) => {
       const s = questions[qIdx].options[optIdx].score;
@@ -259,7 +310,7 @@
       chosenKey = 'sigma';
     }
 
-    const data = archetypes[chosenKey];
+    evaluatedArchetype = archetypes[chosenKey];
 
     // Transition: Hide question card, show calculating radar
     quizCard.style.setProperty('display', 'none', 'important');
@@ -281,12 +332,37 @@
         calcStatusSub.textContent = statusUpdates[step].sub;
       } else {
         clearInterval(interval);
-        // Reveal Results
+        // Hide calculating radar
         calcBox.style.setProperty('display', 'none', 'important');
         calcBox.classList.remove('active');
-        displayResults(data);
+
+        // Reset gate click state
+        gateClickCount = 0;
+        if (btnGateDownload) {
+          btnGateDownload.classList.remove('unlocked-ready');
+          btnGateDownload.href = activeSmartlink;
+          btnGateDownload.target = '_blank';
+          if (gateLockStatus) {
+            gateLockStatus.className = 'gate-lock-pill locked';
+            gateLockStatus.textContent = '🔒 Locked';
+          }
+          if (gateBtnIcon) {
+            gateBtnIcon.textContent = '📥';
+          }
+          if (gateBtnText) {
+            gateBtnText.textContent = 'Download Report & See Result';
+          }
+          if (gateHelperText) {
+            gateHelperText.className = 'gate-helper-text';
+            gateHelperText.textContent = '⚡ Step 1 of 2: Click to access report portal. Your results will unlock immediately.';
+          }
+        }
+
+        // Show 2-Click Gate Box!
+        gateBox.style.setProperty('display', 'block', 'important');
+        gateBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }, 600);
+    }, 550);
   }
 
   // --- Display Results ---
@@ -324,9 +400,11 @@
     currentIndex = 0;
     selectedOptionHistory = [];
     userScores = { sigma: 0, alpha: 0, maverick: 0, consensus: 0 };
+    gateClickCount = 0;
 
     resultsCard.style.setProperty('display', 'none', 'important');
     resultsCard.classList.remove('active');
+    gateBox.style.setProperty('display', 'none', 'important');
     quizCard.style.removeProperty('display');
     progressWrapper.style.removeProperty('display');
 

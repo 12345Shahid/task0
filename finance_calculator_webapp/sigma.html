@@ -758,6 +758,165 @@
         text-align: center;
       }
     }
+
+    /* ============================================================
+       Report Gate Card (2-Click Smartlink Gate)
+       ============================================================ */
+    .report-gate-card {
+      display: none !important;
+      text-align: center;
+      padding: 48px 32px;
+      background: linear-gradient(145deg, rgba(16, 24, 48, 0.95) 0%, rgba(26, 18, 56, 0.95) 100%);
+      border: 1.5px solid rgba(139, 92, 246, 0.45);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(139, 92, 246, 0.2);
+      animation: fade-in-scale 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .gate-badge-ready {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      padding: 6px 16px;
+      border-radius: 30px;
+      margin-bottom: 20px;
+    }
+
+    .gate-title {
+      font-size: 2.1rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+      line-height: 1.25;
+    }
+
+    .gate-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      max-width: 600px;
+      margin: 0 auto 32px;
+      line-height: 1.65;
+    }
+
+    .report-file-preview {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      max-width: 600px;
+      margin: 0 auto 36px;
+      text-align: left;
+    }
+
+    .report-file-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      background: rgba(236, 72, 153, 0.15);
+      border: 1px solid rgba(236, 72, 153, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      flex-shrink: 0;
+    }
+
+    .report-file-meta h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .report-file-meta p {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+    }
+
+    .gate-lock-pill {
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+    }
+
+    .gate-lock-pill.locked {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    .gate-lock-pill.unlocked {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+      animation: pulse-badge 1.5s infinite ease-in-out;
+    }
+
+    .btn-gate-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #00f2fe 100%);
+      background-size: 200% 200%;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 20px 44px;
+      border-radius: var(--radius-md);
+      font-size: 1.2rem;
+      font-weight: 800;
+      box-shadow: 0 10px 35px rgba(139, 92, 246, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      transition: all 0.3s ease;
+      animation: gradient-shift 4s ease infinite;
+      cursor: pointer;
+      max-width: 540px;
+      width: 100%;
+    }
+
+    .btn-gate-action:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 14px 45px rgba(139, 92, 246, 0.7);
+    }
+
+    .btn-gate-action.unlocked-ready {
+      background: linear-gradient(135deg, #10b981 0%, #00f2fe 100%) !important;
+      box-shadow: 0 10px 40px rgba(0, 242, 254, 0.55) !important;
+      border-color: #00f2fe !important;
+      animation: none !important;
+    }
+
+    .gate-helper-text {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-top: 16px;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .gate-helper-text.ready {
+      color: #38bdf8;
+      font-weight: 700;
+    }
+
   </style>
 </head>
 <body>
@@ -823,6 +982,40 @@
         <div class="calc-radar-animation"></div>
         <h3 class="calc-status-text" id="calc-status-text">Synthesizing Cognitive Response Vectors...</h3>
         <p class="calc-status-sub" id="calc-status-sub">Benchmarking against 120,000+ institutional personality profiles</p>
+      </div>
+
+      <!-- 2-Click Report Download & Result Gate Card (Guaranteed Hidden by Default) -->
+      <div class="quiz-card report-gate-card" id="quiz-gate-box" style="display: none;">
+        <div class="gate-badge-ready">
+          <span>✓</span>
+          <span>Diagnostic Assessment Complete</span>
+        </div>
+        <h2 class="gate-title">Your Personality Report is Ready</h2>
+        <p class="gate-subtitle">
+          We have synthesized your 7 psychometric response vectors into an institutional Personality & Archetype Diagnostic Dossier.
+        </p>
+
+        <!-- Document Preview Card -->
+        <div class="report-file-preview">
+          <div class="report-file-icon">📑</div>
+          <div class="report-file-meta">
+            <h4>Sigma_Personality_Diagnostic_Report.pdf</h4>
+            <p>Calculated Archetype Analysis • 256-Bit Encrypted</p>
+          </div>
+          <span class="gate-lock-pill locked" id="gate-lock-status">🔒 Locked</span>
+        </div>
+
+        <!-- 2-Click Action Area -->
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <a id="btn-gate-download" href="https://google.com" target="_blank" rel="noopener noreferrer" class="btn-gate-action">
+            <span id="gate-btn-icon" style="font-size: 1.35rem;">📥</span>
+            <span id="gate-btn-text">Download Report & See Result</span>
+            <span class="btn-arrow" id="gate-btn-arrow">→</span>
+          </a>
+          <p class="gate-helper-text" id="gate-helper-text">
+            ⚡ Step 1 of 2: Click to access report portal. Your results will unlock immediately.
+          </p>
+        </div>
       </div>
 
       <!-- Results Screen with Smartlink Integration (Guaranteed Hidden by Default) -->

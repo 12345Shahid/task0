@@ -1,6 +1,7 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*)",
@@ -17,7 +18,7 @@
       ]
     },
     {
-      "source": "/(styles.css|app.js|manifest.json)",
+      "source": "/(styles.css|calculator.js|app.js|manifest.json)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]

@@ -1,31 +1,39 @@
-const CACHE_NAME = 'aurascan-v1.0.0';
-const STATIC_ASSETS = [
+const CACHE_NAME = 'aurascan-wealth-v3.4';
+const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
+  '/aura',
+  '/aura.html',
   '/styles.css',
+  '/calculator.js',
   '/app.js',
-  '/manifest.json',
-  '/favicon.svg'
+  '/favicon.svg',
+  '/manifest.json'
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
 });
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) => Promise.all(
-      keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-    )).then(() => self.clients.claim())
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
-  e.respondWith(
-    caches.match(e.request).then((res) => res || fetch(e.request))
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });

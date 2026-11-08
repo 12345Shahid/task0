@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraScan™ Labs — Magnetism &amp; Neuro-Aura Assessment (MQ v3.2)</title>
+  <meta name="description" content="Discover your energetic archetype, subconscious magnetism quotient, and behavioral gravity across 7 institutional psychometric dimensions.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#06070e">
+
+  <!-- External Stylesheet fallback -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Inlined Styles to prevent browser caching/unrendered flashes -->
+  <style>
+:root {
+  --bg-primary: #06070e;
+  --bg-secondary: #0c0f1c;
+  --card-bg: rgba(15, 20, 38, 0.88);
+  --card-border: rgba(139, 92, 246, 0.28);
+  --accent-cyan: #00f2fe;
+  --accent-purple: #8b5cf6;
+  --accent-pink: #ec4899;
+  --accent-emerald: #10b981;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 12% 18%, rgba(0, 242, 254, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 88% 65%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 85%, rgba(236, 72, 153, 0.05) 0%, transparent 55%);
+  background-attachment: fixed;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Header & Navigation */
+header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(6, 7, 14, 0.9);
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.logo-orb {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #00f2fe 0%, #8b5cf6 50%, #ec4899 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #070a12;
+  font-weight: 900;
+  font-size: 1.15rem;
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.5);
+  position: relative;
+}
+
+.logo-orb::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 242, 254, 0.6);
+  animation: pulse-ring 2.5s infinite ease-out;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.badge-version {
+  font-size: 0.72rem;
+  background: rgba(139, 92, 246, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.nav-links a:hover {
+  color: var(--accent-cyan);
+}
+
+.nav-start-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.nav-start-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.3);
+}
+
+/* Hero Section */
+.quiz-hero {
+  text-align: center;
+  padding: 48px 0 28px;
+}
+
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 6px 16px;
+  border-radius: 30px;
+  margin-bottom: 18px;
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
+}
+
+.quiz-hero h1 {
+  font-size: 2.7rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #ffffff 15%, #c084fc 60%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.25;
+}
+
+.quiz-hero p {
+  color: var(--text-secondary);
+  font-size: 1.08rem;
+  max-width: 680px;
+  margin: 0 auto 20px;
+  line-height: 1.65;
+}
+
+.social-proof-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.proof-tag {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* Quiz Container */
+.quiz-container {
+  max-width: 800px;
+  margin: 24px auto 70px;
+}
+
+/* Progress Header */
+.quiz-progress-wrapper {
+  margin-bottom: 24px;
+  background: rgba(15, 20, 38, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  backdrop-filter: blur(12px);
+}
+
+.quiz-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.step-pill {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+}
+
+.percent-pill {
+  color: #c084fc;
+  background: rgba(192, 132, 252, 0.12);
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(192, 132, 252, 0.25);
+  font-size: 0.82rem;
+}
+
+.quiz-progress-track {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.quiz-progress-fill {
+  height: 100%;
+  width: 14%;
+  background: linear-gradient(90deg, #ec4899 0%, #8b5cf6 50%, #00f2fe 100%);
+  border-radius: 20px;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 16px rgba(0, 242, 254, 0.65);
+}
+
+/* Question Card */
+.quiz-card {
+  background: linear-gradient(145deg, rgba(15, 20, 38, 0.92) 0%, rgba(18, 14, 38, 0.95) 100%);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(139, 92, 246, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: relative;
+}
+
+.quiz-category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #00f2fe;
+  background: rgba(0, 242, 254, 0.1);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  padding: 5px 14px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  letter-spacing: 0.8px;
+}
+
+.quiz-question-title {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.45;
+  margin-bottom: 28px;
+  letter-spacing: -0.4px;
+}
+
+/* Options List */
+.quiz-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quiz-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  position: relative;
+  outline: none;
+}
+
+.quiz-option-btn:hover {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(192, 132, 252, 0.55);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 18px rgba(139, 92, 246, 0.25);
+}
+
+.quiz-option-btn.selected {
+  background: rgba(0, 242, 254, 0.12);
+  border-color: #00f2fe;
+  box-shadow: 0 0 25px rgba(0, 242, 254, 0.35);
+  transform: translateY(-1px);
+}
+
+.quiz-opt-letter {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.quiz-option-btn:hover .quiz-opt-letter {
+  color: #ffffff;
+  border-color: rgba(192, 132, 252, 0.7);
+  background: rgba(139, 92, 246, 0.3);
+}
+
+.quiz-option-btn.selected .quiz-opt-letter {
+  background: #00f2fe;
+  color: #070a12;
+  border-color: #00f2fe;
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.6);
+}
+
+.quiz-opt-text {
+  flex: 1;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  font-weight: 500;
+  color: #f1f5f9;
+}
+
+.quiz-opt-indicator {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.quiz-option-btn:hover .quiz-opt-indicator {
+  border-color: #c084fc;
+}
+
+.quiz-option-btn.selected .quiz-opt-indicator {
+  border-color: #00f2fe;
+  background: #00f2fe;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
+}
+
+.quiz-option-btn.selected .quiz-opt-indicator::after {
+  content: '✓';
+  font-size: 0.75rem;
+  color: #070a12;
+  font-weight: 900;
+}
+
+.quiz-nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-quiz-back {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-quiz-back:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-quiz-back:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* Calculating State */
+.quiz-calculating-box {
+  display: none !important;
+  text-align: center;
+  padding: 70px 24px;
+}
+
+.calc-radar-animation {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  border: 4px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #00f2fe;
+  border-right-color: #8b5cf6;
+  border-bottom-color: #ec4899;
+  margin: 0 auto 28px;
+  animation: spin-radar 1.1s infinite linear;
+  box-shadow: 0 0 40px rgba(0, 242, 254, 0.4);
+}
+
+@keyframes spin-radar {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.calc-status-text {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.calc-status-sub {
+  font-size: 0.98rem;
+  color: var(--text-secondary);
+}
+
+/* 2-Click Report Gate Card */
+.report-gate-card {
+  display: none !important;
+  text-align: center;
+  padding: 48px 32px;
+  background: linear-gradient(145deg, rgba(15, 20, 38, 0.96) 0%, rgba(22, 16, 46, 0.96) 100%);
+  border: 1.5px solid rgba(139, 92, 246, 0.45);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 45px rgba(139, 92, 246, 0.22);
+  animation: fade-in-scale 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gate-badge-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 6px 16px;
+  border-radius: 30px;
+  margin-bottom: 20px;
+}
+
+.gate-title {
+  font-size: 2.15rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
+}
+
+.gate-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  max-width: 600px;
+  margin: 0 auto 32px;
+  line-height: 1.65;
+}
+
+.report-file-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  max-width: 600px;
+  margin: 0 auto 36px;
+  text-align: left;
+}
+
+.report-file-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(236, 72, 153, 0.15);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.report-file-meta h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.report-file-meta p {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.gate-lock-pill {
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 6px 14px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.gate-lock-pill.locked {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.gate-lock-pill.unlocked {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+  animation: pulse-badge 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.85; }
+}
+
+.btn-gate-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #00f2fe 100%);
+  background-size: 200% 200%;
+  color: #ffffff !important;
+  text-decoration: none;
+  padding: 20px 44px;
+  border-radius: var(--radius-md);
+  font-size: 1.2rem;
+  font-weight: 800;
+  box-shadow: 0 10px 35px rgba(139, 92, 246, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transition: all 0.3s ease;
+  animation: gradient-shift 4s ease infinite;
+  cursor: pointer;
+  max-width: 540px;
+  width: 100%;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.btn-gate-action:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 14px 45px rgba(139, 92, 246, 0.7);
+}
+
+.btn-gate-action.unlocked-ready {
+  background: linear-gradient(135deg, #10b981 0%, #00f2fe 100%) !important;
+  box-shadow: 0 10px 40px rgba(0, 242, 254, 0.55) !important;
+  border-color: #00f2fe !important;
+  animation: none !important;
+}
+
+.gate-helper-text {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-top: 16px;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.gate-helper-text.ready {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+/* Results Screen */
+.quiz-results-card {
+  display: none !important;
+  background: linear-gradient(145deg, rgba(15, 20, 38, 0.96) 0%, rgba(26, 18, 56, 0.96) 100%);
+  border: 1.5px solid rgba(139, 92, 246, 0.45);
+  border-radius: var(--radius-lg);
+  padding: 44px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 45px rgba(139, 92, 246, 0.22);
+  backdrop-filter: blur(20px);
+}
+
+@keyframes fade-in-scale {
+  0% { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.result-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 6px 16px;
+  border-radius: 30px;
+  margin-bottom: 20px;
+}
+
+.result-title {
+  font-size: 2.3rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
+}
+
+.result-tagline {
+  font-size: 1.15rem;
+  color: #c084fc;
+  font-weight: 600;
+  margin-bottom: 24px;
+  font-style: italic;
+}
+
+.result-desc {
+  font-size: 1.02rem;
+  color: #cbd5e1;
+  line-height: 1.75;
+  margin-bottom: 36px;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 3px solid #8b5cf6;
+  padding: 18px 22px;
+  border-radius: 0 12px 12px 0;
+}
+
+.result-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 40px;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-md);
+  padding: 18px 22px;
+}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.metric-val {
+  color: #00f2fe;
+  font-weight: 900;
+}
+
+.metric-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.metric-fill {
+  height: 100%;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #ec4899, #00f2fe);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.5);
+}
+
+.smartlink-reveal-box {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border: 2px solid rgba(139, 92, 246, 0.5);
+  border-radius: var(--radius-lg);
+  padding: 38px 32px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 45px rgba(139, 92, 246, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.smartlink-reveal-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ec4899, #8b5cf6, #00f2fe);
+}
+
+.smartlink-exclusive-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  padding: 5px 14px;
+  border-radius: 30px;
+  margin-bottom: 16px;
+}
+
+.smartlink-reveal-box h3 {
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 12px;
+  letter-spacing: -0.4px;
+}
+
+.smartlink-reveal-box p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  max-width: 580px;
+  margin: 0 auto 28px;
+  line-height: 1.65;
+}
+
+.btn-smartlink-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #00f2fe 100%);
+  background-size: 200% 200%;
+  color: #ffffff !important;
+  text-decoration: none;
+  padding: 20px 40px;
+  border-radius: var(--radius-md);
+  font-size: 1.15rem;
+  font-weight: 800;
+  box-shadow: 0 10px 35px rgba(236, 72, 153, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  transition: all 0.3s ease;
+  animation: gradient-shift 4s ease infinite;
+  cursor: pointer;
+}
+
+.btn-smartlink-cta:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 14px 45px rgba(236, 72, 153, 0.7);
+}
+
+.btn-smartlink-cta .btn-arrow {
+  font-size: 1.35rem;
+  transition: transform 0.2s ease;
+}
+
+.btn-smartlink-cta:hover .btn-arrow {
+  transform: translateX(6px);
+}
+
+.smartlink-disclaimer-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 16px;
+}
+
+footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(6, 7, 14, 0.95);
+  padding: 50px 0 30px;
+  margin-top: 80px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+
+.footer-brand h4 {
+  font-size: 1.15rem;
+  margin-bottom: 10px;
+  color: #ffffff;
+}
+
+.footer-brand p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.footer-links {
+  list-style: none;
+}
+
+.footer-links li {
+  margin-bottom: 10px;
+}
+
+.footer-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.88rem;
+  transition: var(--transition);
+}
+
+.footer-links a:hover {
+  color: var(--accent-cyan);
+}
+
+.copyright-bar {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .quiz-card {
+    padding: 26px 20px;
+  }
+  .quiz-results-card {
+    padding: 26px 20px;
+  }
+  .report-gate-card {
+    padding: 28px 18px;
+  }
+  .quiz-hero h1 {
+    font-size: 2.1rem;
+  }
+  .quiz-option-btn {
+    padding: 16px 18px;
+    gap: 14px;
+  }
+  .quiz-opt-text {
+    font-size: 0.95rem;
+  }
+  .btn-gate-action {
+    padding: 16px 20px;
+    font-size: 1.05rem;
+  }
+  .btn-smartlink-cta {
+    width: 100%;
+    padding: 16px 20px;
+    font-size: 1rem;
+  }
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+  .copyright-bar {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}
+
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="logo">
+        <div class="logo-orb"></div>
+        AuraScan<span style="color: var(--accent-violet);">™</span>
+        <span class="badge-version">MQ v3.2</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#dimensions">Diagnostic Dimensions</a>
+        <a href="#methodology">Methodology</a>
+        <a href="#archetypes">Archetypes</a>
+        <a href="#quiz-section" class="nav-start-btn">Start Assessment</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="quiz-hero">
+    <div class="container hero-container">
+      <div class="hero-pill">✨ Institutional Psychometric Assessment</div>
+      <h1>Discover Your Energetic Archetype &amp; Gravitational Resonance</h1>
+      <p>Decode your subconscious magnetism, energetic signature, and behavioral gravity across 7 institutional psychometric dimensions.</p>
+
+      <div class="social-proof-bar">
+        <div class="proof-tag">🔥 241,890+ Completed</div>
+        <div class="proof-tag">⚡ 99.4% Precision Score</div>
+        <div class="proof-tag">🔒 100% Anonymous &amp; Secure</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Quiz Section -->
+  <main class="quiz-container" id="quiz-section">
+
+    <!-- Progress Indicator -->
+    <div class="quiz-progress-wrapper" id="quiz-progress-wrapper">
+      <div class="quiz-progress-header">
+        <span class="step-pill" id="quiz-step-indicator">Dimension 1 of 7</span>
+        <span class="percent-pill" id="quiz-percent-indicator">14% Processed</span>
+      </div>
+      <div class="quiz-progress-track">
+        <div class="quiz-progress-fill" id="quiz-progress-bar" style="width: 14%;"></div>
+      </div>
+    </div>
+
+    <!-- Active Question Card -->
+    <div class="quiz-card" id="quiz-card">
+      <div class="quiz-category-tag" id="quiz-category">1. Subconscious Gravitational Field</div>
+      <h2 class="quiz-question-title" id="quiz-question-text">Loading question...</h2>
+
+      <div class="quiz-options-list" id="quiz-options-container">
+        <!-- Rendered dynamically via app.js -->
+      </div>
+
+      <div class="quiz-nav-row">
+        <button type="button" class="btn-quiz-back" id="btn-quiz-prev" disabled>← Previous Dimension</button>
+      </div>
+    </div>
+
+    <!-- Calculating State Box -->
+    <div class="quiz-calculating-box" id="quiz-calculating-box" style="display: none;">
+      <div class="calc-radar-animation"></div>
+      <div class="calc-status-text" id="calc-status-text">Synthesizing Energetic Resonance Vectors...</div>
+      <div class="calc-status-sub" id="calc-status-sub">Benchmarking against 240,000+ validated psychological profiles</div>
+    </div>
+
+    <!-- TWO-CLICK SMARTLINK REPORT GATE CARD -->
+    <div class="report-gate-card" id="quiz-gate-box" style="display: none;">
+      <span class="gate-badge-ready">✨ SPECTRUM CALCULATION COMPLETE</span>
+      <h2 class="gate-title">Your Confidential Aura Profile Is Ready</h2>
+      <p class="gate-subtitle">Your responses have been processed through the AuraScan™ Magnetism Quotient matrix. Unlock your official archetype dossier below.</p>
+
+      <div class="report-file-preview">
+        <div class="report-file-icon">📄</div>
+        <div class="report-file-meta">
+          <h4>AuraScan_Confidential_Dossier_2026.pdf</h4>
+          <p>3.8 MB • Encrypted Psychometric Report • Ref: #AS-9842-MQ</p>
+        </div>
+        <div class="gate-lock-pill locked" id="gate-lock-status">🔒 Locked</div>
+      </div>
+
+      <!-- 2-CLICK SMARTLINK ACTION BUTTON -->
+      <a href="https://google.com" target="_blank" class="btn-gate-action" id="btn-gate-download">
+        <span id="gate-btn-icon">📥</span>
+        <span id="gate-btn-text">Download Full Aura Dossier (Free)</span>
+      </a>
+
+      <p class="gate-helper-text" id="gate-helper-text">Click to verify and generate your official archetype dossier.</p>
+    </div>
+
+    <!-- RESULTS DOSSIER CARD (Revealed on 2nd Click) -->
+    <div class="quiz-results-card" id="quiz-results-card" style="display: none;">
+      <div class="result-badge-pill" id="res-archetype-code">💎 S-TIER RESONANCE</div>
+      <h2 class="result-title" id="res-title">The Obsidian Sovereign</h2>
+      <p class="result-tagline" id="res-tagline">Rare Electromagnetic Gravity • Cold Strategic Composure • Total Self-Sovereignty</p>
+      <p class="result-desc" id="res-description">Loading your detailed psychometric aura breakdown...</p>
+
+      <!-- Trait Metrics Grid -->
+      <div class="result-metrics-grid">
+        <div class="metric-card">
+          <div class="metric-header">
+            <span>Gravitational Presence</span>
+            <span class="metric-val" id="metric-gravity">98%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" id="fill-gravity" style="width: 98%;"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header">
+            <span>Cognitive Sovereignty</span>
+            <span class="metric-val" id="metric-sovereignty">97%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" id="fill-sovereignty" style="width: 97%;"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header">
+            <span>Intuitive Detection</span>
+            <span class="metric-val" id="metric-detection">95%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" id="fill-detection" style="width: 95%;"></div></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header">
+            <span>Volatility Resilience</span>
+            <span class="metric-val" id="metric-resilience">99%</span>
+          </div>
+          <div class="metric-track"><div class="metric-fill" id="fill-resilience" style="width: 99%;"></div></div>
+        </div>
+      </div>
+
+      <!-- Secondary High-Value Smartlink Reveal Box -->
+      <div class="smartlink-reveal-box">
+        <span class="smartlink-exclusive-badge">⚡ EXCLUSIVE SYNAPSE PROTOCOL</span>
+        <h3 id="smartlink-headline">Unlock Compatible High-Value Connections &amp; Networks</h3>
+        <p id="smartlink-subtext">Based on your Obsidian Sovereign archetype, discover aligned elite circles, sovereign thinkers, and verified opportunities.</p>
+        <a href="https://google.com" target="_blank" class="btn-smartlink-cta" id="smartlink-cta-btn">
+          <span id="smartlink-btn-text">Access Sovereign Match Circle</span>
+          <span class="btn-arrow">→</span>
+        </a>
+        <p class="smartlink-disclaimer-note">🔒 Verified encrypted connection. Instant redirection.</p>
+      </div>
+
+      <!-- Retake Button -->
+      <div style="text-align: center; margin-top: 36px;">
+        <button type="button" class="btn-quiz-back" id="btn-retake-quiz" style="padding: 12px 28px;">↺ Retake AuraScan Assessment</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Methodology & Dimensions Section -->
+  <section class="container" id="dimensions" style="max-width: 900px; margin: 80px auto 40px auto; padding: 0 20px;">
+    <h2 style="font-size: 26px; font-weight: 800; margin-bottom: 12px; text-align: center;">The 7 Neuro-Aura Vectors</h2>
+    <p style="color: var(--text-muted); text-align: center; max-width: 650px; margin: 0 auto 40px auto; line-height: 1.6;">AuraScan™ applies advanced trait synthesis across key psychometric and energetic vectors.</p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+      <div style="background: rgba(17, 24, 39, 0.6); border: 1px solid var(--border-glass); border-radius: 12px; padding: 20px;">
+        <h4 style="font-size: 16px; font-weight: 700; color: var(--accent-violet); margin-bottom: 8px;">1. Subconscious Gravity</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Natural room polarization and involuntary attention orientation.</p>
+      </div>
+      <div style="background: rgba(17, 24, 39, 0.6); border: 1px solid var(--border-glass); border-radius: 12px; padding: 20px;">
+        <h4 style="font-size: 16px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 8px;">2. Micro-Expression Radar</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Subconscious deceit perception and conversational intent reading.</p>
+      </div>
+      <div style="background: rgba(17, 24, 39, 0.6); border: 1px solid var(--border-glass); border-radius: 12px; padding: 20px;">
+        <h4 style="font-size: 16px; font-weight: 700; color: var(--accent-gold); margin-bottom: 8px;">3. Volatility Immunity</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">Autonomic nervous stability under sudden environmental chaos.</p>
+      </div>
+      <div style="background: rgba(17, 24, 39, 0.6); border: 1px solid var(--border-glass); border-radius: 12px; padding: 20px;">
+        <h4 style="font-size: 16px; font-weight: 700; color: var(--accent-emerald); margin-bottom: 8px;">4. Solitary Recharge</h4>
+        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">High-voltage cognitive recovery mechanics and sovereign focus.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="container" id="methodology" style="border-top: 1px solid var(--border-glass); margin-top: 80px; padding: 50px 20px 30px 20px;">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <h4>AuraScan™ Labs</h4>
+        <p>AuraScan™ is a proprietary psychometric diagnostic framework measuring interpersonal magnetism, autonomic resilience, and social sovereignty. Standardized across 240,000+ benchmark assessments.</p>
+      </div>
+      <div>
+        <ul class="footer-links">
+          <li><strong>Dimensions</strong></li>
+          <li><a href="#dimensions">Magnetism Quotient</a></li>
+          <li><a href="#dimensions">Cognitive Autonomy</a></li>
+          <li><a href="#dimensions">Resilience Vector</a></li>
+        </ul>
+      </div>
+      <div>
+        <ul class="footer-links">
+          <li><strong>Archetypes</strong></li>
+          <li><a href="#quiz-section">Obsidian Sovereign</a></li>
+          <li><a href="#quiz-section">Radiant Apex</a></li>
+          <li><a href="#quiz-section">Electric Catalyst</a></li>
+        </ul>
+      </div>
+      <div>
+        <ul class="footer-links">
+          <li><strong>Legal &amp; Privacy</strong></li>
+          <li><a href="javascript:void(0)">Confidentiality Policy</a></li>
+          <li><a href="javascript:void(0)">Terms of Analysis</a></li>
+          <li><a href="javascript:void(0)">Data Security</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="copyright-bar">
+      <div>© 2026 AuraScan Labs Inc. All rights reserved. Registered trademark.</div>
+      <div style="display: flex; gap: 16px;">
+        <a href="javascript:void(0)" style="color: var(--text-dim); text-decoration: none;">Security Protocol</a>
+        <a href="javascript:void(0)" style="color: var(--text-dim); text-decoration: none;">Privacy Vault</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./sw.js').catch(function() {});
+      });
+    }
+  </script>
+</body>
+</html>

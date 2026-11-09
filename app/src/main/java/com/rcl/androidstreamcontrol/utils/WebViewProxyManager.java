@@ -62,12 +62,13 @@ public class WebViewProxyManager {
     private static final String SUPABASE_KEY =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF4em96c2RncmdhaHZnenBzZm1tIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTgwNjg2MCwiZXhwIjoyMDk1MzgyODYwfQ.aFwaFR6TTnmAa1dg4ZknEhmYCS74ZqcAMw4Lg2LUk1Y";
 
-    // Default Proxy Configuration (US Residential)
+    // Default Proxy Configuration (Residential)
     private static volatile String proxyType = "http";
     private static volatile String proxyHost = "thehub.proxy-cheap.com";
     private static volatile int proxyPort = 8080;
     private static volatile String proxyUser = "Ltj8SfJpTEukyVn";
     private static volatile String proxyPass = "0Pa7rRMzcehfeLR_country-US";
+    private static volatile String activeCountry = "US"; // Default country lock
     private static volatile String currentSessionTag = "active";
     private static volatile String activeGeoState = "TN";
     private static volatile String activeGeoCity = "livingston";
@@ -321,20 +322,51 @@ public class WebViewProxyManager {
         return city.trim().toLowerCase().replaceAll("[^a-z0-9]", "");
     }
 
+    public static String getActiveCountry() {
+        return (activeCountry != null && !activeCountry.isEmpty()) ? activeCountry : "US";
+    }
+
+    public static String getCountryFlag(String code) {
+        if (code == null) return "🌐";
+        switch (code.toUpperCase()) {
+            case "US": return "🇺🇸";
+            case "GB": return "🇬🇧";
+            case "AU": return "🇦🇺";
+            case "CA": return "🇨🇦";
+            case "DE": return "🇩🇪";
+            case "FR": return "🇫🇷";
+            case "IT": return "🇮🇹";
+            case "ES": return "🇪🇸";
+            case "RU": return "🇷🇺";
+            case "NL": return "🇳🇱";
+            case "JP": return "🇯🇵";
+            default: return "🌐";
+        }
+    }
+
+    public static synchronized void setActiveCountry(String countryCode) {
+        if (countryCode == null || countryCode.trim().isEmpty()) countryCode = "US";
+        activeCountry = countryCode.trim().toUpperCase();
+        activeGeoCity = null; // Clear city override when country changes
+        proxyPass = "0Pa7rRMzcehfeLR_country-" + activeCountry;
+        Log.d(TAG, "Proxy country locked to: " + activeCountry + " (" + getCountryFlag(activeCountry) + ")");
+        if (!isProxyStopped) {
+            applySelectiveProxy();
+        }
+    }
+
     public static String getEffectiveProxyPass() {
         return getEffectiveProxyPass(true);
     }
 
     public static String getEffectiveProxyPass(boolean includeCity) {
-        String base = (proxyPass != null) ? proxyPass : "0Pa7rRMzcehfeLR_country-US";
-        base = base.replaceAll("_(city|session|state)-[^_]+", "");
-        if (!base.contains("_country-")) {
-            base = base + "_country-US";
-        }
+        String base = (proxyPass != null) ? proxyPass : "0Pa7rRMzcehfeLR";
+        base = base.replaceAll("_(country|city|session|state)-[^_]+", "");
         StringBuilder sb = new StringBuilder(base);
-        if (includeCity) {
-            String cityToUse = (activeGeoCity != null && !activeGeoCity.trim().isEmpty()) ? activeGeoCity : "newyork";
-            String cleanCity = formatCityParam(cityToUse);
+        String country = getActiveCountry();
+        sb.append("_country-").append(country);
+        if (includeCity && "US".equalsIgnoreCase(country) && activeGeoCity != null && !activeGeoCity.trim().isEmpty()) {
+            String cleanCity = formatCityParam(activeGeoCity);
             if (!cleanCity.isEmpty()) {
                 sb.append("_city-").append(cleanCity);
             }
@@ -1016,7 +1048,9 @@ public class WebViewProxyManager {
 
             ProxyConfig.Builder builder = new ProxyConfig.Builder();
             builder.addProxyRule(proxyAddress);
-            builder.addDirect();
+            if (!isFullProxyMode) {
+                builder.addDirect();
+            }
 
             if (!isFullProxyMode && WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE_REVERSE_BYPASS)) {
                 for (String domain : WHITELISTED_DOMAINS) {
@@ -1026,7 +1060,7 @@ public class WebViewProxyManager {
                 builder.setReverseBypassEnabled(true);
                 Log.d(TAG, "Configured Reverse Bypass proxy via " + proxyAddress + " for " + WHITELISTED_DOMAINS.size() + " domains");
             } else {
-                Log.d(TAG, "Configured FULL PROXY mode via " + proxyAddress + " (100% of WebView traffic routed through US proxy)");
+                Log.d(TAG, "Configured FULL PROXY mode via " + proxyAddress + " (100% of WebView traffic routed through " + getActiveCountry() + " proxy)");
             }
 
             ProxyConfig config = builder.build();

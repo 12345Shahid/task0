@@ -405,7 +405,7 @@ public class BrowserActivity extends AppCompatActivity {
         LinearLayout.LayoutParams proxyParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, dp(26));
         proxyParams.setMargins(0, 0, dp(6), 0);
-        proxyBadge.setOnClickListener(v -> showWhitelistDialog());
+        proxyBadge.setOnClickListener(v -> showCountrySelectorDialog());
         controlsRow.addView(proxyBadge, proxyParams);
 
         // 🚀 Traffic Simulation Engine Button
@@ -480,12 +480,9 @@ public class BrowserActivity extends AppCompatActivity {
             proxyBadge.setTextColor(0xFFBAC2DE);
         } else if (isProxied) {
             badgeBg.setColor(0xFF2E7D32); // Green
-            String city = WebViewProxyManager.getActiveGeoCity();
-            if (city != null && !city.isEmpty()) {
-                proxyBadge.setText("🛡️ " + city + " Proxy" + bwSuffix);
-            } else {
-                proxyBadge.setText("🛡️ US Proxy" + bwSuffix);
-            }
+            String country = WebViewProxyManager.getActiveCountry();
+            String flag = WebViewProxyManager.getCountryFlag(country);
+            proxyBadge.setText("🛡️ " + flag + " " + country + " Proxy" + bwSuffix);
             proxyBadge.setTextColor(Color.WHITE);
         } else {
             badgeBg.setColor(0xFF45475A); // Neutral grey
@@ -1823,6 +1820,45 @@ public class BrowserActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "Failed to save profile state", e);
         }
+    }
+
+    private void showCountrySelectorDialog() {
+        final String[] countryCodes = {"US", "GB", "AU", "CA", "DE", "FR", "IT", "ES", "RU", "NL", "JP"};
+        final String[] countryNames = {
+            "🇺🇸 United States (US)",
+            "🇬🇧 United Kingdom (GB)",
+            "🇦🇺 Australia (AU)",
+            "🇨🇦 Canada (CA)",
+            "🇩🇪 Germany (DE)",
+            "🇫🇷 France (FR)",
+            "🇮🇹 Italy (IT)",
+            "🇪🇸 Spain (ES)",
+            "🇷🇺 Russia (RU)",
+            "🇳🇱 Netherlands (NL)",
+            "🇯🇵 Japan (JP)"
+        };
+
+        String currentCountry = WebViewProxyManager.getActiveCountry();
+        int selectedIndex = 0;
+        for (int i = 0; i < countryCodes.length; i++) {
+            if (countryCodes[i].equalsIgnoreCase(currentCountry)) {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Select Proxy Country / Region")
+                .setSingleChoiceItems(countryNames, selectedIndex, (dialog, which) -> {
+                    String chosen = countryCodes[which];
+                    WebViewProxyManager.setActiveCountry(chosen);
+                    updateProxyBadgeUI(true);
+                    Toast.makeText(this, "🛡️ Proxy locked to " + countryNames[which], Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                })
+                .setNeutralButton("Proxy Info", (dialog, which) -> showWhitelistDialog())
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showWhitelistDialog() {

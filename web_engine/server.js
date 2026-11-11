@@ -830,12 +830,23 @@ app.get('/', (req, res) => {
 });
 
 // Start Server & Graceful Shutdown
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`====================================================`);
   console.log(`🚀 AuraBrowser Cloud Web Engine (Phase 4) running on port ${PORT}`);
   console.log(`🔗 Web Dashboard: http://localhost:${PORT}`);
   console.log(`🏥 Health Status : http://localhost:${PORT}/health`);
   console.log(`====================================================`);
+
+  // Auto-initialize default session with POCO M3 & US residential proxy preloaded to BrowserScan
+  try {
+    console.log('[Startup] Auto-initializing primary POCO M3 session with 🇺🇸 US proxy...');
+    const record = await sessionManager.createSession({ profileId: 'poco_m3', countryCode: 'US' });
+    console.log('[Startup] Primary session ready! Pre-navigating to BrowserScan...');
+    await record.session.navigate('https://www.browserscan.net/');
+    console.log('[Startup] BrowserScan loaded successfully! Ready for live user stream.');
+  } catch (err) {
+    console.warn('[Startup] Auto-session warning:', err.message);
+  }
 });
 
 process.on('SIGTERM', async () => {

@@ -48,6 +48,11 @@ class BrowserSession {
       '--no-first-run',
       '--no-default-browser-check',
       '--disable-blink-features=AutomationControlled',
+      '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+      '--enforce-webrtc-ip-permission-check',
+      '--disable-webrtc-multiple-routes',
+      '--disable-webrtc-hw-decoding',
+      '--disable-webrtc-hw-encoding',
       `--window-size=${this.profile.viewport.width},${this.profile.viewport.height}`
     ];
 
@@ -60,6 +65,12 @@ class BrowserSession {
       args: launchArgs,
       ignoreDefaultArgs: ['--enable-automation']
     });
+
+    // Detect actual underlying engine version to eliminate version mismatch
+    const rawVersion = await this.browser.version();
+    const chromeVerMatch = rawVersion.match(/Chrome\/([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+    this.realChromeVersion = chromeVerMatch ? chromeVerMatch[1] : '149.0.7827.22';
+    this.chromeMajor = this.realChromeVersion.split('.')[0] || '149';
 
     this.tabs = [];
     this.tabCounter = 1;
@@ -99,20 +110,26 @@ class BrowserSession {
 
     const cdp = await page.createCDPSession();
 
-    // Override User-Agent & Client Hints
+    // Override User-Agent & Client Hints (Aligned 1:1 with real Chromium version)
+    const alignedUa = this.profile.userAgent.replace(/Chrome\/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/, `Chrome/${this.realChromeVersion}`);
+
     const cdpUaPayload = {
-      userAgent: this.profile.userAgent,
+      userAgent: alignedUa,
       acceptLanguage: `${this.country.locale},${this.country.locale.split('-')[0]};q=0.9`,
       platform: this.profile.platform
     };
 
     if (this.profile.clientHints) {
       cdpUaPayload.userAgentMetadata = {
-        brands: this.profile.clientHints.brands,
+        brands: [
+          { brand: 'Chromium', version: this.chromeMajor },
+          { brand: 'Google Chrome', version: this.chromeMajor },
+          { brand: 'Not-A.Brand', version: '24' }
+        ],
         fullVersionList: [
-          { brand: 'Chromium', version: '124.0.6367.113' },
-          { brand: 'Google Chrome', version: '124.0.6367.113' },
-          { brand: 'Not-A.Brand', version: '99.0.0.0' }
+          { brand: 'Chromium', version: this.realChromeVersion },
+          { brand: 'Google Chrome', version: this.realChromeVersion },
+          { brand: 'Not-A.Brand', version: '24.0.0.0' }
         ],
         mobile: this.profile.clientHints.mobile,
         model: this.profile.clientHints.model,
@@ -143,7 +160,7 @@ class BrowserSession {
     } catch (e) {}
 
     // Inject stealth script
-    const stealthScript = generateStealthScript(this.profile, this.country, this.noiseSeed);
+    const stealthScript = generateStealthScript(this.profile, this.country, this.noiseSeed, this.realChromeVersion);
     await page.evaluateOnNewDocument(stealthScript);
 
     const tabObj = {
@@ -278,7 +295,7 @@ class BrowserSession {
     // Re-inject stealth script with fresh seed across all open tabs
     for (const t of this.tabs) {
       try {
-        const script = generateStealthScript(this.profile, this.country, this.noiseSeed);
+        const script = generateStealthScript(this.profile, this.country, this.noiseSeed, this.realChromeVersion);
         await t.page.evaluateOnNewDocument(script);
       } catch (e) {}
     }

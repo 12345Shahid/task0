@@ -1,0 +1,16 @@
+{
+  "name": "aura-web-engine",
+  "version": "1.0.0",
+  "description": "AuraBrowser Universal Anti-Detect Web Engine (Phase 1)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test:phase1": "node test/test_phase1.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "puppeteer": "^25.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  }
+}

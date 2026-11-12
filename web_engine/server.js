@@ -616,9 +616,10 @@ app.get('/', (req, res) => {
             document.getElementById('bandwidthBadge').innerText = '🌐 Proxy: ' + msg.bandwidthMB + ' MB';
           }
         } else if (msg.type === 'init') {
-          const overlay = document.getElementById('loadingOverlay');
-          if (overlay && overlay.style.display !== 'none') overlay.style.display = 'none';
           currentSessionId = msg.sessionId;
+          if (msg.bandwidthMB !== undefined) {
+            document.getElementById('bandwidthBadge').innerText = '🌐 Proxy: ' + msg.bandwidthMB + ' MB';
+          }
           if (msg.isMobile !== undefined) {
             isMobileSession = !!msg.isMobile;
           }
@@ -751,6 +752,12 @@ app.get('/', (req, res) => {
     let pointerStartY = 0;
     let isTouchDragging = false;
     let pointerButton = 0;
+    let lastTouchMoveTime = 0;
+    let wheelTimer = null;
+    let pendingWheelX = 0;
+    let pendingWheelY = 0;
+    let pendingWheelCoordX = 0;
+    let pendingWheelCoordY = 0;
 
     canvas.addEventListener('pointerdown', (e) => {
       const coords = getNormalizedCoords(e);
@@ -794,23 +801,31 @@ app.get('/', (req, res) => {
               }));
             }
           }
-          if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'touch',
-              event: 'touchmove',
-              touches: [{ x: coords.x, y: coords.y }]
-            }));
+          const now = performance.now();
+          if (now - lastTouchMoveTime >= 25) { // Throttle to smooth 40Hz
+            lastTouchMoveTime = now;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'touch',
+                event: 'touchmove',
+                touches: [{ x: coords.x, y: coords.y }]
+              }));
+            }
           }
         }
       } else {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
-            type: 'mouse',
-            event: 'mousemove',
-            x: coords.x,
-            y: coords.y,
-            button: 'left'
-          }));
+        const now = performance.now();
+        if (now - lastTouchMoveTime >= 25) {
+          lastTouchMoveTime = now;
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'mouse',
+              event: 'mousemove',
+              x: coords.x,
+              y: coords.y,
+              button: 'left'
+            }));
+          }
         }
       }
     });
@@ -874,7 +889,7 @@ app.get('/', (req, res) => {
       }
     });
 
-    // Touch & Trackpad 2-finger wheel scrolling
+    // Touch & Trackpad 2-finger wheel scrolling (Batched to prevent CDP congestion)
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const coords = getNormalizedCoords(e);
@@ -887,14 +902,27 @@ app.get('/', (req, res) => {
         dx *= 650;
         dy *= 650;
       }
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'wheel',
-          x: coords.x,
-          y: coords.y,
-          deltaX: dx,
-          deltaY: dy
-        }));
+
+      pendingWheelX += dx;
+      pendingWheelY += dy;
+      pendingWheelCoordX = coords.x;
+      pendingWheelCoordY = coords.y;
+
+      if (!wheelTimer) {
+        wheelTimer = setTimeout(() => {
+          wheelTimer = null;
+          if (ws && ws.readyState === WebSocket.OPEN && (pendingWheelX !== 0 || pendingWheelY !== 0)) {
+            ws.send(JSON.stringify({
+              type: 'wheel',
+              x: pendingWheelCoordX,
+              y: pendingWheelCoordY,
+              deltaX: Math.round(pendingWheelX),
+              deltaY: Math.round(pendingWheelY)
+            }));
+          }
+          pendingWheelX = 0;
+          pendingWheelY = 0;
+        }, 20); // 50Hz batched wheel emission
       }
     }, { passive: false });
 

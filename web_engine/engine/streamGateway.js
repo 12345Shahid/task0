@@ -7,6 +7,7 @@ class StreamGateway {
     this.sessionManager = sessionManager;
     this.clientMap = new Map(); // ws -> { sessionId, lastFpsTime, frameCount, currentFps, bandwidthBytes }
     this.sessionStreams = new Set(); // Set of sessionIds that already have screencast attached
+    this.lastFrames = new Map(); // sessionId -> latest frame cache to eliminate black screen on reconnect
 
     this.init();
   }
@@ -62,6 +63,7 @@ class StreamGateway {
       }
 
       if (session && session.isActive) {
+        const proxyMB = ((session.proxyBytesTransferred || 0) / (1024 * 1024)).toFixed(2);
         ws.send(JSON.stringify({
           type: 'init',
           sessionId: targetSessionId,
@@ -71,8 +73,24 @@ class StreamGateway {
           isMobile: !!(session.profile && session.profile.viewport && session.profile.viewport.isMobile),
           url: session.page ? session.page.url() : '',
           tabs: session.getTabsList(),
-          bandwidthMB: '0.00'
+          bandwidthMB: proxyMB
         }));
+
+        // Immediately push latest frame if available so reconnecting never sees a black screen
+        const cachedFrame = this.lastFrames.get(targetSessionId);
+        if (cachedFrame) {
+          ws.send(JSON.stringify({
+            type: 'frame',
+            sessionId: targetSessionId,
+            data: cachedFrame.data,
+            metadata: cachedFrame.metadata,
+            fps: clientInfo.currentFps,
+            proxyMB: proxyMB,
+            bandwidthMB: proxyMB,
+            timestamp: cachedFrame.timestamp
+          }));
+        }
+
         this.ensureScreencast(targetSessionId, session);
       } else {
         ws.send(JSON.stringify({
@@ -98,13 +116,17 @@ class StreamGateway {
   }
 
   ensureScreencast(sessionId, session) {
-    if (!sessionId || !session || !session.isActive || this.sessionStreams.has(sessionId)) {
+    if (!sessionId || !session || !session.isActive) {
+      return;
+    }
+    if (session.isScreencasting && this.sessionStreams.has(sessionId)) {
       return;
     }
 
     this.sessionStreams.add(sessionId);
 
     session.startScreencast((frame) => {
+      this.lastFrames.set(sessionId, frame);
       const frameByteSize = frame.data.length * 0.75;
       const now = Date.now();
 
@@ -150,6 +172,7 @@ class StreamGateway {
       const newSession = this.sessionManager.getSession(newSessionId);
       if (newSession && newSession.isActive) {
         clientInfo.sessionId = newSessionId;
+        const proxyMB = ((newSession.proxyBytesTransferred || 0) / (1024 * 1024)).toFixed(2);
         ws.send(JSON.stringify({
           type: 'init',
           sessionId: newSessionId,
@@ -159,8 +182,21 @@ class StreamGateway {
           isMobile: !!(newSession.profile && newSession.profile.viewport && newSession.profile.viewport.isMobile),
           url: newSession.page ? newSession.page.url() : '',
           tabs: newSession.getTabsList(),
-          bandwidthMB: (clientInfo.bandwidthBytes / (1024 * 1024)).toFixed(2)
+          bandwidthMB: proxyMB
         }));
+        const cachedFrame = this.lastFrames.get(newSessionId);
+        if (cachedFrame) {
+          ws.send(JSON.stringify({
+            type: 'frame',
+            sessionId: newSessionId,
+            data: cachedFrame.data,
+            metadata: cachedFrame.metadata,
+            fps: clientInfo.currentFps,
+            proxyMB: proxyMB,
+            bandwidthMB: proxyMB,
+            timestamp: cachedFrame.timestamp
+          }));
+        }
         this.ensureScreencast(newSessionId, newSession);
       }
       return;

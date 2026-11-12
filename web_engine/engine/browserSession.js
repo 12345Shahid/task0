@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const http = require('http');
 const { getProfile } = require('../config/profiles');
 const { getCountry } = require('../config/countries');
 const { generateStealthScript } = require('../stealth/fingerprintInjector');
@@ -18,10 +19,48 @@ class BrowserSession {
       user: 'Ltj8SfJpTEukyVn',
       basePass: '0Pa7rRMzcehfeLR'
     };
+    this.proxyBytesTransferred = 0;
     this.isActive = false;
     this.isScreencasting = false;
     this.onFrameCallback = null;
     this.tabCounter = 1;
+    this._isDispatchingTouch = false;
+    this._pendingTouchMove = null;
+  }
+
+  /**
+   * Fast geo & timezone lookup for the residential proxy exit IP
+   */
+  detectProxyGeo(countryCode = 'US') {
+    return new Promise((resolve) => {
+      const auth = Buffer.from(`${this.proxyConfig.user}:${this.proxyConfig.basePass}_country-${countryCode}`).toString('base64');
+      const req = http.request({
+        host: 'thehub.proxy-cheap.com',
+        port: 8080,
+        path: 'http://ip-api.com/json/?fields=status,country,countryCode,regionName,city,timezone,lat,lon,query',
+        headers: {
+          'Proxy-Authorization': 'Basic ' + auth,
+          'User-Agent': 'curl/7.68.0'
+        },
+        timeout: 4500
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed && parsed.status === 'success') {
+              resolve(parsed);
+              return;
+            }
+          } catch (e) {}
+          resolve(null);
+        });
+      });
+      req.on('error', () => resolve(null));
+      req.on('timeout', () => { req.destroy(); resolve(null); });
+      req.end();
+    });
   }
 
   /**
@@ -33,8 +72,24 @@ class BrowserSession {
     }
 
     this.profile = getProfile(profileId);
-    this.country = getCountry(countryCode);
+    this.country = { ...getCountry(countryCode) };
     this.noiseSeed = Math.random();
+    this.proxyBytesTransferred = 0;
+
+    // Dynamically synchronize IP geolocation & timezone from residential proxy exit node
+    try {
+      const geoInfo = await this.detectProxyGeo(this.country.code);
+      if (geoInfo && geoInfo.timezone) {
+        console.log(`[BrowserSession] Synchronized proxy IP ${geoInfo.query} (${geoInfo.regionName || ''}, ${geoInfo.city || ''}) timezone -> ${geoInfo.timezone}`);
+        this.country.timezone = geoInfo.timezone;
+        if (geoInfo.lat && geoInfo.lon) {
+          this.country.latitude = geoInfo.lat;
+          this.country.longitude = geoInfo.lon;
+        }
+      }
+    } catch (e) {
+      console.warn('[BrowserSession] Proxy geo detection skipped:', e.message);
+    }
 
     const proxyPass = `${this.proxyConfig.basePass}_country-${this.country.code}`;
     const proxyServer = `http://${this.proxyConfig.host}`;
@@ -65,6 +120,7 @@ class BrowserSession {
     this.browser = await puppeteer.launch({
       headless: headless,
       args: launchArgs,
+      protocolTimeout: 120000,
       ignoreDefaultArgs: ['--enable-automation']
     });
 
@@ -149,11 +205,6 @@ class BrowserSession {
       await cdp.send('Network.enable');
       cdp.on('Network.dataReceived', (params) => {
         this.proxyBytesTransferred = (this.proxyBytesTransferred || 0) + (params.encodedDataLength || 0);
-      });
-      cdp.on('Network.loadingFinished', (params) => {
-        if (params.encodedDataLength) {
-          this.proxyBytesTransferred = (this.proxyBytesTransferred || 0) + params.encodedDataLength;
-        }
       });
     } catch(e) {}
 
@@ -395,7 +446,7 @@ class BrowserSession {
   }
 
   /**
-   * Dispatch Touch Events via CDP
+   * Dispatch Touch Events via CDP with Move Coalescing to prevent queue starvation
    */
   async dispatchTouchEvent({ type = 'touchStart', touchPoints = [] } = {}) {
     if (!this.cdpSession) return;
@@ -406,17 +457,48 @@ class BrowserSession {
       'touchcancel': 'touchCancel'
     };
     const cdpType = cdpTypeMap[type.toLowerCase()] || type;
-    await this.cdpSession.send('Input.dispatchTouchEvent', {
-      type: cdpType,
-      touchPoints: touchPoints.map(tp => ({
-        x: Math.round(tp.x),
-        y: Math.round(tp.y),
-        radiusX: tp.radiusX || 1,
-        radiusY: tp.radiusY || 1,
-        force: tp.force || 1.0,
-        id: tp.id || 0
-      }))
-    });
+
+    // For touchStart, touchEnd, touchCancel: always send immediately
+    if (cdpType !== 'touchMove') {
+      try {
+        await this.cdpSession.send('Input.dispatchTouchEvent', {
+          type: cdpType,
+          touchPoints: touchPoints.map(tp => ({
+            x: Math.round(tp.x),
+            y: Math.round(tp.y),
+            radiusX: tp.radiusX || 1,
+            radiusY: tp.radiusY || 1,
+            force: tp.force || 1.0,
+            id: tp.id || 0
+          }))
+        });
+      } catch (e) {}
+      return;
+    }
+
+    // For touchMove: coalesce to ensure only 1 in-flight command at a time
+    this._pendingTouchMove = touchPoints;
+    if (this._isDispatchingTouch) return;
+
+    this._isDispatchingTouch = true;
+    while (this._pendingTouchMove && this.cdpSession) {
+      const pts = this._pendingTouchMove;
+      this._pendingTouchMove = null;
+      try {
+        await this.cdpSession.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: pts.map(tp => ({
+            x: Math.round(tp.x),
+            y: Math.round(tp.y),
+            radiusX: tp.radiusX || 1,
+            radiusY: tp.radiusY || 1,
+            force: tp.force || 1.0,
+            id: tp.id || 0
+          }))
+        });
+      } catch (e) {}
+    }
+    this._isDispatchingTouch = false;
   }
 
   /**
@@ -451,36 +533,23 @@ class BrowserSession {
 
   /**
    * Universal Touch & Wheel Scroll Gesture
-   * Supports both mobile touch-synthesized gestures and desktop mouseWheel
+   * Instant, smooth scrolling via mouseWheel and direct DOM fallback
    */
   async scroll({ x = 200, y = 400, deltaX = 0, deltaY = 0 } = {}) {
     if (!this.cdpSession) return;
-    const isMobile = this.profile && this.profile.viewport && this.profile.viewport.isMobile;
     const scrollX = Math.round(x || (this.profile && this.profile.viewport ? this.profile.viewport.width / 2 : 200));
     const scrollY = Math.round(y || (this.profile && this.profile.viewport ? this.profile.viewport.height / 2 : 400));
     const dX = Math.round(deltaX || 0);
     const dY = Math.round(deltaY || 0);
 
     try {
-      if (isMobile) {
-        // Chromium touch gesture: negative distance drags finger up -> scrolls content down
-        await this.cdpSession.send('Input.synthesizeScrollGesture', {
-          x: scrollX,
-          y: scrollY,
-          xDistance: -dX,
-          yDistance: -dY,
-          speed: 1600,
-          gestureSourceType: 'touch'
-        });
-      } else {
-        await this.cdpSession.send('Input.dispatchMouseEvent', {
-          type: 'mouseWheel',
-          x: scrollX,
-          y: scrollY,
-          deltaX: dX,
-          deltaY: dY
-        });
-      }
+      await this.cdpSession.send('Input.dispatchMouseEvent', {
+        type: 'mouseWheel',
+        x: scrollX,
+        y: scrollY,
+        deltaX: dX,
+        deltaY: dY
+      });
     } catch (err) {
       // Direct DOM scroll fallback
       try {

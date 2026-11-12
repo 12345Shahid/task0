@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require('crypto');
 const BrowserSession = require('./browserSession');
 
 class SessionManager {
-  constructor({ maxSessions = 10, idleTimeoutMs = 30 * 60 * 1000 } = {}) {
+  constructor({ maxSessions = 10, idleTimeoutMs = 4 * 60 * 60 * 1000 } = {}) {
     this.sessions = new Map(); // sessionId -> { session, createdAt, lastActiveAt, timer }
     this.maxSessions = maxSessions;
     this.idleTimeoutMs = idleTimeoutMs;

@@ -461,6 +461,7 @@ app.get('/', (req, res) => {
       color: #fff;
       transform: scale(1.08);
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -534,8 +535,12 @@ app.get('/', (req, res) => {
   <main>
     <div class="device-frame framed" id="deviceFrame">
       <div class="device-notch"></div>
-      <div class="screen-container">
+      <div class="screen-container" style="position: relative;">
         <canvas id="screenCanvas" width="412" height="915"></canvas>
+        <div id="loadingOverlay" style="display: flex; position: absolute; inset: 0; background: rgba(10, 15, 29, 0.95); flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #fff; z-index: 30;">
+          <div style="width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          <span id="loadingText" style="font-size: 13px; font-weight: 500; color: #94a3b8;">Connecting to anti-detect session...</span>
+        </div>
       </div>
     </div>
 
@@ -589,6 +594,8 @@ app.get('/', (req, res) => {
         const msg = JSON.parse(event.data);
 
         if (msg.type === 'frame') {
+          const overlay = document.getElementById('loadingOverlay');
+          if (overlay && overlay.style.display !== 'none') overlay.style.display = 'none';
           const img = new Image();
           img.onload = () => {
             if (canvas.width !== img.width || canvas.height !== img.height) {
@@ -609,6 +616,8 @@ app.get('/', (req, res) => {
             document.getElementById('bandwidthBadge').innerText = '🌐 Proxy: ' + msg.bandwidthMB + ' MB';
           }
         } else if (msg.type === 'init') {
+          const overlay = document.getElementById('loadingOverlay');
+          if (overlay && overlay.style.display !== 'none') overlay.style.display = 'none';
           currentSessionId = msg.sessionId;
           if (msg.isMobile !== undefined) {
             isMobileSession = !!msg.isMobile;
@@ -634,6 +643,12 @@ app.get('/', (req, res) => {
           document.getElementById('latencyBadge').innerText = latency + ' ms';
         } else if (msg.type === 'notification') {
           alert(msg.message);
+        } else if (msg.type === 'status') {
+          const overlay = document.getElementById('loadingOverlay');
+          if (overlay) {
+            overlay.style.display = 'flex';
+            document.getElementById('loadingText').innerText = msg.message;
+          }
         }
       };
 

@@ -12,7 +12,7 @@ class StreamGateway {
   }
 
   init() {
-    this.wss.on('connection', (ws, req) => {
+    this.wss.on('connection', async (ws, req) => {
       const parsedUrl = url.parse(req.url, true);
       let targetSessionId = parsedUrl.query.sessionId;
 
@@ -23,7 +23,6 @@ class StreamGateway {
       if (!session) {
         session = this.sessionManager.getDefaultSession();
         if (session) {
-          // Find the record id
           const sessions = this.sessionManager.listSessions();
           if (sessions.length > 0) targetSessionId = sessions[sessions.length - 1].id;
         }
@@ -39,6 +38,28 @@ class StreamGateway {
       this.clientMap.set(ws, clientInfo);
 
       console.log(`[StreamGateway] Client connected for session: ${targetSessionId || 'none'}. Total clients: ${this.clientMap.size}`);
+
+      // Auto-heal / Auto-spawn if no active session exists
+      if (!session || !session.isActive) {
+        ws.send(JSON.stringify({
+          type: 'status',
+          message: '⚡ Auto-launching primary anti-detect session...'
+        }));
+        console.log('[StreamGateway] No active session found. Auto-spawning primary POCO M3 session...');
+        try {
+          const newRecord = await this.sessionManager.createSession({
+            profileId: 'poco_m3',
+            countryCode: 'US',
+            headless: 'new'
+          });
+          targetSessionId = newRecord.id;
+          session = newRecord.session;
+          clientInfo.sessionId = targetSessionId;
+          session.navigate('https://browserscan.net/').catch(() => {});
+        } catch(e) {
+          console.error('[StreamGateway] Auto-spawn error:', e.message);
+        }
+      }
 
       if (session && session.isActive) {
         ws.send(JSON.stringify({
@@ -56,7 +77,7 @@ class StreamGateway {
       } else {
         ws.send(JSON.stringify({
           type: 'status',
-          message: 'No active session. Please create or start a session first.'
+          message: 'No active session. Click Spawn Sandbox to start.'
         }));
       }
 

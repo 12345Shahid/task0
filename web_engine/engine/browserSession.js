@@ -33,7 +33,10 @@ class BrowserSession {
    */
   detectProxyGeo(countryCode = 'US') {
     return new Promise((resolve) => {
-      const auth = Buffer.from(`${this.proxyConfig.user}:${this.proxyConfig.basePass}_country-${countryCode}`).toString('base64');
+      const targetPass = countryCode === 'US'
+        ? `${this.proxyConfig.basePass}_country-US_region-NY`
+        : `${this.proxyConfig.basePass}_country-${countryCode}`;
+      const auth = Buffer.from(`${this.proxyConfig.user}:${targetPass}`).toString('base64');
       const req = http.request({
         host: 'thehub.proxy-cheap.com',
         port: 8080,
@@ -91,7 +94,9 @@ class BrowserSession {
       console.warn('[BrowserSession] Proxy geo detection skipped:', e.message);
     }
 
-    const proxyPass = `${this.proxyConfig.basePass}_country-${this.country.code}`;
+    const proxyPass = this.country.code === 'US'
+      ? `${this.proxyConfig.basePass}_country-US_region-NY`
+      : `${this.proxyConfig.basePass}_country-${this.country.code}`;
     const proxyServer = `http://${this.proxyConfig.host}`;
 
     const launchArgs = [
@@ -120,6 +125,7 @@ class BrowserSession {
     this.browser = await puppeteer.launch({
       headless: headless,
       args: launchArgs,
+      env: { ...process.env, TZ: this.country.timezone || 'America/New_York' },
       protocolTimeout: 120000,
       ignoreDefaultArgs: ['--enable-automation']
     });
@@ -160,7 +166,9 @@ class BrowserSession {
     const tabId = 'tab_' + (this.tabCounter++);
 
     // Proxy authentication
-    const proxyPass = `${this.proxyConfig.basePass}_country-${this.country.code}`;
+    const proxyPass = this.country.code === 'US'
+      ? `${this.proxyConfig.basePass}_country-US_region-NY`
+      : `${this.proxyConfig.basePass}_country-${this.country.code}`;
     await page.authenticate({
       username: this.proxyConfig.user,
       password: proxyPass

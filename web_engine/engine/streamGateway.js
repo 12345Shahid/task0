@@ -47,6 +47,7 @@ class StreamGateway {
           profile: session.profile.name,
           country: `${session.country.flag} ${session.country.name}`,
           viewport: session.profile.viewport,
+          isMobile: !!(session.profile && session.profile.viewport && session.profile.viewport.isMobile),
           url: session.page ? session.page.url() : '',
           tabs: session.getTabsList(),
           bandwidthMB: '0.00'
@@ -131,6 +132,7 @@ class StreamGateway {
           profile: newSession.profile.name,
           country: `${newSession.country.flag} ${newSession.country.name}`,
           viewport: newSession.profile.viewport,
+          isMobile: !!(newSession.profile && newSession.profile.viewport && newSession.profile.viewport.isMobile),
           url: newSession.page ? newSession.page.url() : '',
           tabs: newSession.getTabsList(),
           bandwidthMB: (clientInfo.bandwidthBytes / (1024 * 1024)).toFixed(2)
@@ -157,15 +159,23 @@ class StreamGateway {
       case 'touch':
         await session.dispatchTouchEvent({
           type: msg.event,
-          touchPoints: msg.touches || [{ x: msg.x, y: msg.y }]
+          touchPoints: msg.touches || (msg.x !== undefined && msg.y !== undefined ? [{ x: msg.x, y: msg.y }] : [])
         });
         break;
 
       case 'wheel':
-        await session.dispatchMouseEvent({
-          type: 'wheel',
-          x: msg.x || 0,
-          y: msg.y || 0,
+        await session.scroll({
+          x: msg.x,
+          y: msg.y,
+          deltaX: msg.deltaX || 0,
+          deltaY: msg.deltaY || 0
+        });
+        break;
+
+      case 'scroll_by':
+        await session.scroll({
+          x: msg.x,
+          y: msg.y,
           deltaX: msg.deltaX || 0,
           deltaY: msg.deltaY || 0
         });

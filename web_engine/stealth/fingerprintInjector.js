@@ -262,6 +262,32 @@ function generateStealthScript(profile, country, noiseSeed = Math.random(), chro
       makeNative(WrappedDateTimeFormat, 'DateTimeFormat', 0);
       Intl.DateTimeFormat = WrappedDateTimeFormat;
 
+      ['NumberFormat', 'Collator', 'PluralRules', 'RelativeTimeFormat'].forEach(function(api) {
+        try {
+          var OrigConstructor = Intl[api];
+          if (!OrigConstructor) return;
+          var Wrapped = function(locales, options) {
+            var targetLocale = locales || spoofLang;
+            var instance = new OrigConstructor(targetLocale, options);
+            var origResolved = instance.resolvedOptions;
+            if (origResolved) {
+              instance.resolvedOptions = makeNative(function resolvedOptions() {
+                var ro = origResolved.call(this);
+                ro.locale = spoofLang;
+                return ro;
+              }, 'resolvedOptions', 0);
+            }
+            return instance;
+          };
+          Wrapped.prototype = OrigConstructor.prototype;
+          if (OrigConstructor.supportedLocalesOf) {
+            Wrapped.supportedLocalesOf = OrigConstructor.supportedLocalesOf;
+          }
+          makeNative(Wrapped, api, 0);
+          Intl[api] = Wrapped;
+        } catch(e) {}
+      });
+
       var getTargetTimezoneOffset = function(dateObj) {
         try {
           var date = dateObj || new Date();

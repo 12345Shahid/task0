@@ -53,6 +53,8 @@ class BrowserSession {
       '--disable-webrtc-multiple-routes',
       '--disable-webrtc-hw-decoding',
       '--disable-webrtc-hw-encoding',
+      `--lang=${this.country.locale || 'en-US'}`,
+      `--accept-lang=${this.country.locale || 'en-US'},en;q=0.9`,
       `--window-size=${this.profile.viewport.width},${this.profile.viewport.height}`
     ];
 
@@ -431,6 +433,50 @@ class BrowserSession {
         text,
         unmodifiedText: text
       });
+    }
+  }
+
+  /**
+   * Universal Touch & Wheel Scroll Gesture
+   * Supports both mobile touch-synthesized gestures and desktop mouseWheel
+   */
+  async scroll({ x = 200, y = 400, deltaX = 0, deltaY = 0 } = {}) {
+    if (!this.cdpSession) return;
+    const isMobile = this.profile && this.profile.viewport && this.profile.viewport.isMobile;
+    const scrollX = Math.round(x || (this.profile && this.profile.viewport ? this.profile.viewport.width / 2 : 200));
+    const scrollY = Math.round(y || (this.profile && this.profile.viewport ? this.profile.viewport.height / 2 : 400));
+    const dX = Math.round(deltaX || 0);
+    const dY = Math.round(deltaY || 0);
+
+    try {
+      if (isMobile) {
+        // Chromium touch gesture: negative distance drags finger up -> scrolls content down
+        await this.cdpSession.send('Input.synthesizeScrollGesture', {
+          x: scrollX,
+          y: scrollY,
+          xDistance: -dX,
+          yDistance: -dY,
+          speed: 1600,
+          gestureSourceType: 'touch'
+        });
+      } else {
+        await this.cdpSession.send('Input.dispatchMouseEvent', {
+          type: 'mouseWheel',
+          x: scrollX,
+          y: scrollY,
+          deltaX: dX,
+          deltaY: dY
+        });
+      }
+    } catch (err) {
+      // Direct DOM scroll fallback
+      try {
+        if (this.page) {
+          await this.page.evaluate((sx, sy) => {
+            window.scrollBy({ left: sx, top: sy, behavior: 'instant' });
+          }, dX, dY);
+        }
+      } catch (e) {}
     }
   }
 

@@ -424,6 +424,43 @@ app.get('/', (req, res) => {
       padding: 5px 10px;
       font-size: 12px;
     }
+
+    /* Floating Quick Scroll Dock */
+    .scroll-dock {
+      position: absolute;
+      right: 24px;
+      bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 45;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .scroll-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .scroll-btn:hover {
+      background: var(--primary);
+      color: #fff;
+      transform: scale(1.08);
+    }
   </style>
 </head>
 <body>
@@ -507,6 +544,14 @@ app.get('/', (req, res) => {
       <input type="text" id="pasteInput" class="paste-input" placeholder="Paste link or text to send...">
       <button onclick="pasteToRemote()">📋 Insert Text</button>
     </div>
+
+    <!-- Floating Quick Scroll Dock -->
+    <div class="scroll-dock" title="Scroll Navigation Controls">
+      <button class="scroll-btn" onclick="scrollRemote(0, -10000)" title="Scroll to Top">🔝</button>
+      <button class="scroll-btn" onclick="scrollRemote(0, -350)" title="Scroll Up">⬆️</button>
+      <button class="scroll-btn" onclick="scrollRemote(0, 350)" title="Scroll Down">⬇️</button>
+      <button class="scroll-btn" onclick="scrollRemote(0, 10000)" title="Scroll to Bottom">🔚</button>
+    </div>
   </main>
 
   <script>
@@ -518,6 +563,7 @@ app.get('/', (req, res) => {
     let lastPing = Date.now();
     let isFramed = true;
     let currentSessionId = null;
+    let isMobileSession = true;
 
     function connectWebSocket(sessionId = null) {
       if (ws) {
@@ -562,6 +608,9 @@ app.get('/', (req, res) => {
           }
         } else if (msg.type === 'init') {
           currentSessionId = msg.sessionId;
+          if (msg.isMobile !== undefined) {
+            isMobileSession = !!msg.isMobile;
+          }
           if (msg.viewport) {
             currentViewport = msg.viewport;
             canvas.width = msg.viewport.width;
@@ -681,32 +730,71 @@ app.get('/', (req, res) => {
     }
 
     let isPointerDown = false;
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let isTouchDragging = false;
+    let pointerButton = 0;
 
     canvas.addEventListener('pointerdown', (e) => {
-      isPointerDown = true;
       const coords = getNormalizedCoords(e);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'mouse',
-          event: 'mousedown',
-          x: coords.x,
-          y: coords.y,
-          button: e.button === 2 ? 'right' : 'left'
-        }));
+      isPointerDown = true;
+      pointerStartX = coords.x;
+      pointerStartY = coords.y;
+      isTouchDragging = false;
+      pointerButton = e.button;
+
+      if (!isMobileSession) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'mouse',
+            event: 'mousedown',
+            x: coords.x,
+            y: coords.y,
+            button: e.button === 2 ? 'right' : 'left'
+          }));
+        }
       }
     });
 
     canvas.addEventListener('pointermove', (e) => {
       if (!isPointerDown) return;
       const coords = getNormalizedCoords(e);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'mouse',
-          event: 'mousemove',
-          x: coords.x,
-          y: coords.y,
-          button: 'left'
-        }));
+
+      if (isMobileSession) {
+        const dx = coords.x - pointerStartX;
+        const dy = coords.y - pointerStartY;
+        const dist = Math.hypot(dx, dy);
+
+        // When moved > 5px, transition into touch swipe scrolling (never selects text!)
+        if (dist > 5) {
+          if (!isTouchDragging) {
+            isTouchDragging = true;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'touch',
+                event: 'touchstart',
+                touches: [{ x: pointerStartX, y: pointerStartY }]
+              }));
+            }
+          }
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'touch',
+              event: 'touchmove',
+              touches: [{ x: coords.x, y: coords.y }]
+            }));
+          }
+        }
+      } else {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'mouse',
+            event: 'mousemove',
+            x: coords.x,
+            y: coords.y,
+            button: 'left'
+          }));
+        }
       }
     });
 
@@ -714,34 +802,133 @@ app.get('/', (req, res) => {
       if (!isPointerDown) return;
       isPointerDown = false;
       const coords = getNormalizedCoords(e);
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'mouse',
-          event: 'mouseup',
-          x: coords.x,
-          y: coords.y,
-          button: e.button === 2 ? 'right' : 'left'
-        }));
+
+      if (isMobileSession) {
+        if (isTouchDragging) {
+          // Finish touch swipe scroll
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'touch',
+              event: 'touchend',
+              touches: []
+            }));
+          }
+          isTouchDragging = false;
+        } else {
+          // Clean tap (click without drag)
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'touch',
+              event: 'touchstart',
+              touches: [{ x: coords.x, y: coords.y }]
+            }));
+            ws.send(JSON.stringify({
+              type: 'touch',
+              event: 'touchend',
+              touches: []
+            }));
+            // Desktop mouse compatibility for web buttons
+            ws.send(JSON.stringify({
+              type: 'mouse',
+              event: 'mousedown',
+              x: coords.x,
+              y: coords.y,
+              button: pointerButton === 2 ? 'right' : 'left'
+            }));
+            ws.send(JSON.stringify({
+              type: 'mouse',
+              event: 'mouseup',
+              x: coords.x,
+              y: coords.y,
+              button: pointerButton === 2 ? 'right' : 'left'
+            }));
+          }
+        }
+      } else {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'mouse',
+            event: 'mouseup',
+            x: coords.x,
+            y: coords.y,
+            button: pointerButton === 2 ? 'right' : 'left'
+          }));
+        }
       }
     });
 
+    // Touch & Trackpad 2-finger wheel scrolling
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const coords = getNormalizedCoords(e);
+      let dx = e.deltaX;
+      let dy = e.deltaY;
+      if (e.deltaMode === 1) { // DOM_DELTA_LINE
+        dx *= 35;
+        dy *= 35;
+      } else if (e.deltaMode === 2) { // DOM_DELTA_PAGE
+        dx *= 650;
+        dy *= 650;
+      }
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           type: 'wheel',
           x: coords.x,
           y: coords.y,
-          deltaX: e.deltaX,
-          deltaY: e.deltaY
+          deltaX: dx,
+          deltaY: dy
         }));
       }
     }, { passive: false });
 
-    // Keyboard
+    // Floating Dock & Quick Scroll helper
+    function scrollRemote(deltaX, deltaY) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'scroll_by',
+          x: Math.round(currentViewport.width / 2),
+          y: Math.round(currentViewport.height / 2),
+          deltaX: deltaX,
+          deltaY: deltaY
+        }));
+      }
+    }
+
+    // Keyboard navigation with auto-scrolling
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        scrollRemote(0, 180);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        scrollRemote(0, -180);
+        return;
+      }
+      if (e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+        e.preventDefault();
+        scrollRemote(0, 450);
+        return;
+      }
+      if (e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+        e.preventDefault();
+        scrollRemote(0, -450);
+        return;
+      }
+      if (e.key === 'Home') {
+        e.preventDefault();
+        scrollRemote(0, -100000);
+        return;
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        scrollRemote(0, 100000);
+        return;
+      }
+
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           type: 'key',

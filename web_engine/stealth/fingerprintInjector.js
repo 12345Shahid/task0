@@ -367,6 +367,7 @@ function generateStealthScript(profile, country, noiseSeed = Math.random(), chro
         var origGetExtension = proto.getExtension;
 
         proto.getParameter = makeNative(function getParameter(param) {
+          var realVal = origGetParameter.apply(this, arguments);
           try {
             if (this && typeof this.isContextLost === 'function' && !this.isContextLost()) {
               if (param === 37445) return webglVendor; // UNMASKED_VENDOR_WEBGL
@@ -377,17 +378,18 @@ function generateStealthScript(profile, country, noiseSeed = Math.random(), chro
               if (param === 35724) return isW2 ? 'WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.00 Chromium)' : 'WebGL GLSL ES 1.0 (OpenGL ES GLSL 1.0 Chromium)'; // SHADING_LANGUAGE_VERSION
             }
           } catch(e) {}
-          return origGetParameter.apply(this, arguments);
+          return realVal;
         }, 'getParameter', 1);
 
         proto.getExtension = makeNative(function getExtension(name) {
+          var realExt = origGetExtension.apply(this, arguments);
           if (name === 'WEBGL_debug_renderer_info') {
-            return {
+            return realExt || {
               UNMASKED_VENDOR_WEBGL: 37445,
               UNMASKED_RENDERER_WEBGL: 37446
             };
           }
-          return origGetExtension.apply(this, arguments);
+          return realExt;
         }, 'getExtension', 1);
       }
 
@@ -411,9 +413,10 @@ function generateStealthScript(profile, country, noiseSeed = Math.random(), chro
           platform: 'Android',
           getHighEntropyValues: makeNative(function(hints) {
             return Promise.resolve({
-              architecture: 'arm64',
+              architecture: 'arm',
               bitness: '64',
               brands: brandsList,
+              formFactors: Object.freeze(['mobile']),
               fullVersionList: Object.freeze([
                 Object.freeze({ brand: 'Chromium', version: cFull }),
                 Object.freeze({ brand: 'Google Chrome', version: cFull }),
@@ -422,7 +425,9 @@ function generateStealthScript(profile, country, noiseSeed = Math.random(), chro
               mobile: isMobile,
               model: clientHintsModel || 'M2010J19CG',
               platform: 'Android',
-              platformVersion: androidVer
+              platformVersion: androidVer,
+              uaFullVersion: cFull,
+              wow64: false
             });
           }, 'getHighEntropyValues', 1),
           toJSON: makeNative(function() {
@@ -435,6 +440,15 @@ function generateStealthScript(profile, country, noiseSeed = Math.random(), chro
         });
       } else {
         try { delete Navigator.prototype.userAgentData; } catch(e) {}
+      }
+    } catch(e) {}
+
+    // Mobile Speech Voices Masking (Prevents macOS voice leak)
+    try {
+      if (isMobile && typeof window.speechSynthesis !== 'undefined') {
+        window.speechSynthesis.getVoices = makeNative(function getVoices() {
+          return [];
+        }, 'getVoices', 0);
       }
     } catch(e) {}
 

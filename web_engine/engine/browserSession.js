@@ -144,6 +144,19 @@ class BrowserSession {
 
     await cdp.send('Network.setUserAgentOverride', cdpUaPayload);
 
+    // Track actual Residential Proxy Network Bytes
+    try {
+      await cdp.send('Network.enable');
+      cdp.on('Network.dataReceived', (params) => {
+        this.proxyBytesTransferred = (this.proxyBytesTransferred || 0) + (params.encodedDataLength || 0);
+      });
+      cdp.on('Network.loadingFinished', (params) => {
+        if (params.encodedDataLength) {
+          this.proxyBytesTransferred = (this.proxyBytesTransferred || 0) + params.encodedDataLength;
+        }
+      });
+    } catch(e) {}
+
     // Viewport & Emulation
     await page.setViewport(this.profile.viewport);
 
@@ -334,10 +347,10 @@ class BrowserSession {
 
     await this.cdpSession.send('Page.startScreencast', {
       format: 'jpeg',
-      quality: 80,
+      quality: 68,
       maxWidth: this.profile.viewport.width,
       maxHeight: this.profile.viewport.height,
-      everyNthFrame: 1
+      everyNthFrame: 2
     });
   }
 

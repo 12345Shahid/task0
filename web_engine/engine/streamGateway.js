@@ -99,13 +99,16 @@ class StreamGateway {
             info.lastFpsTime = now;
           }
 
+          const proxyMB = ((session.proxyBytesTransferred || 0) / (1024 * 1024)).toFixed(2);
+
           clientWs.send(JSON.stringify({
             type: 'frame',
             sessionId,
             data: frame.data,
             metadata: frame.metadata,
             fps: info.currentFps,
-            bandwidthMB: (info.bandwidthBytes / (1024 * 1024)).toFixed(2),
+            proxyMB: proxyMB,
+            bandwidthMB: proxyMB,
             timestamp: frame.timestamp
           }));
         }

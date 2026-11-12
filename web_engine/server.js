@@ -502,7 +502,7 @@ app.get('/', (req, res) => {
     <!-- Live Telemetry -->
     <div class="telemetry">
       <span id="statusIndicator" class="indicator"></span>
-      <span id="bandwidthBadge">🛡️ 0.00 MB</span>
+      <span id="bandwidthBadge" title="Actual Residential Proxy Network Traffic">🌐 Proxy: 0.00 MB</span>
       <span id="fpsBadge">0 FPS</span>
       <span id="latencyBadge">-- ms</span>
     </div>
@@ -603,8 +603,10 @@ app.get('/', (req, res) => {
           if (msg.fps !== undefined) {
             document.getElementById('fpsBadge').innerText = msg.fps + ' FPS';
           }
-          if (msg.bandwidthMB !== undefined) {
-            document.getElementById('bandwidthBadge').innerText = '🛡️ ' + msg.bandwidthMB + ' MB';
+          if (msg.proxyMB !== undefined) {
+            document.getElementById('bandwidthBadge').innerText = '🌐 Proxy: ' + msg.proxyMB + ' MB';
+          } else if (msg.bandwidthMB !== undefined) {
+            document.getElementById('bandwidthBadge').innerText = '🌐 Proxy: ' + msg.bandwidthMB + ' MB';
           }
         } else if (msg.type === 'init') {
           currentSessionId = msg.sessionId;

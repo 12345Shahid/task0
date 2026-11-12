@@ -1074,7 +1074,7 @@ server.listen(PORT, async () => {
     console.log('[Startup] Auto-initializing primary POCO M3 session with 🇺🇸 US proxy...');
     const record = await sessionManager.createSession({ profileId: 'poco_m3', countryCode: 'US' });
     console.log('[Startup] Primary session ready! Pre-navigating to BrowserScan...');
-    await record.session.navigate('https://www.browserscan.net/');
+    await record.session.navigate('https://browserscan.net/');
     console.log('[Startup] BrowserScan loaded successfully! Ready for live user stream.');
   } catch (err) {
     console.warn('[Startup] Auto-session warning:', err.message);

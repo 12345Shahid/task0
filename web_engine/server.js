@@ -533,6 +533,7 @@ app.get('/', (req, res) => {
     <div class="quick-pill" onclick="quickNav('https://pixelscan.net/')">🛡️ Pixelscan Green</div>
     <div class="quick-pill" onclick="quickNav('https://aurascan-analytics.vercel.app/')">✨ AuraWealth</div>
     <div class="quick-pill" onclick="quickNav('https://aurascan-analytics.vercel.app/aura')">🔮 Dating & Aura</div>
+    <div class="quick-pill" onclick="quickNav('https://aurascan-analytics.vercel.app/aura#partner-links')">💘 Partner Links Directory</div>
     <div class="quick-pill" onclick="quickNav('https://api.ipify.org?format=json')">🌐 My IP Check</div>
   </div>
 

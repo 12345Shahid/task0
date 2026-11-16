@@ -468,9 +468,48 @@ class BrowserSession {
   }
 
   /**
+   * Ensure active and healthy CDP session (reconnects if detached or closed)
+   */
+  async ensureCDPSession() {
+    if (!this.isActive) return null;
+
+    if (!this.page || this.page.isClosed()) {
+      try {
+        const pages = await this.browser.pages();
+        if (pages.length > 0) {
+          this.page = pages[0];
+        }
+      } catch (e) {}
+    }
+
+    if (this.cdpSession) {
+      try {
+        await this.cdpSession.send('Target.getTargetInfo');
+        return this.cdpSession;
+      } catch (e) {
+        // CDP session is closed or detached
+        this.cdpSession = null;
+      }
+    }
+
+    if (this.page && !this.page.isClosed()) {
+      try {
+        this.cdpSession = await this.page.createCDPSession();
+        const activeTab = this.tabs.find(t => t.id === this.activeTabId);
+        if (activeTab) activeTab.cdpSession = this.cdpSession;
+        return this.cdpSession;
+      } catch (err) {
+        console.warn('[BrowserSession] Failed to re-create CDP session:', err.message);
+      }
+    }
+    return this.cdpSession;
+  }
+
+  /**
    * Dispatch Mouse Events via CDP
    */
   async dispatchMouseEvent({ type = 'mouseMoved', x = 0, y = 0, button = 'none', clickCount = 0, deltaX = 0, deltaY = 0 } = {}) {
+    await this.ensureCDPSession();
     if (!this.cdpSession) return;
     const cdpTypeMap = {
       'mousedown': 'mousePressed',
@@ -492,13 +531,16 @@ class BrowserSession {
       params.deltaY = deltaY || 0;
     }
 
-    await this.cdpSession.send('Input.dispatchMouseEvent', params);
+    try {
+      await this.cdpSession.send('Input.dispatchMouseEvent', params);
+    } catch (e) {}
   }
 
   /**
    * Dispatch Touch Events via CDP with Move Coalescing to prevent queue starvation
    */
   async dispatchTouchEvent({ type = 'touchStart', touchPoints = [] } = {}) {
+    await this.ensureCDPSession();
     if (!this.cdpSession) return;
     const cdpTypeMap = {
       'touchstart': 'touchStart',
@@ -555,6 +597,7 @@ class BrowserSession {
    * Dispatch Key Events via CDP
    */
   async dispatchKeyEvent({ type = 'keyDown', key = '', code = '', text = '', windowsVirtualKeyCode = 0 } = {}) {
+    await this.ensureCDPSession();
     if (!this.cdpSession) return;
     const cdpTypeMap = {
       'keydown': 'rawKeyDown',
@@ -563,35 +606,39 @@ class BrowserSession {
     };
     const cdpType = cdpTypeMap[type.toLowerCase()] || type;
 
-    await this.cdpSession.send('Input.dispatchKeyEvent', {
-      type: cdpType,
-      key,
-      code,
-      text: (cdpType === 'rawKeyDown' || cdpType === 'keyDown') ? text : undefined,
-      unmodifiedText: text,
-      windowsVirtualKeyCode
-    });
-
-    if ((cdpType === 'rawKeyDown' || cdpType === 'keyDown') && text && text.length === 1) {
+    try {
       await this.cdpSession.send('Input.dispatchKeyEvent', {
-        type: 'char',
-        text,
-        unmodifiedText: text
+        type: cdpType,
+        key,
+        code,
+        text: (cdpType === 'rawKeyDown' || cdpType === 'keyDown') ? text : undefined,
+        unmodifiedText: text,
+        windowsVirtualKeyCode
       });
-    }
+
+      if ((cdpType === 'rawKeyDown' || cdpType === 'keyDown') && text && text.length === 1) {
+        await this.cdpSession.send('Input.dispatchKeyEvent', {
+          type: 'char',
+          text,
+          unmodifiedText: text
+        });
+      }
+    } catch (e) {}
   }
 
   /**
    * Universal Touch & Wheel Scroll Gesture
-   * Instant, smooth scrolling via mouseWheel and direct DOM fallback
+   * Instant, smooth scrolling via mouseWheel, synthetic touch gesture, and direct DOM execution
    */
   async scroll({ x = 200, y = 400, deltaX = 0, deltaY = 0 } = {}) {
+    await this.ensureCDPSession();
     if (!this.cdpSession) return;
     const scrollX = Math.round(x || (this.profile && this.profile.viewport ? this.profile.viewport.width / 2 : 200));
     const scrollY = Math.round(y || (this.profile && this.profile.viewport ? this.profile.viewport.height / 2 : 400));
     const dX = Math.round(deltaX || 0);
     const dY = Math.round(deltaY || 0);
 
+    // 1. Mouse wheel event via CDP
     try {
       await this.cdpSession.send('Input.dispatchMouseEvent', {
         type: 'mouseWheel',
@@ -602,7 +649,18 @@ class BrowserSession {
       });
     } catch (err) {}
 
-    // Universal DOM scroll fallback via direct CDP Runtime evaluation
+    // 2. Synthetic Touch Scroll Gesture (Native mobile viewport scrolling)
+    try {
+      await this.cdpSession.send('Input.synthesizeScrollGesture', {
+        x: scrollX,
+        y: scrollY,
+        xDistance: -dX,
+        yDistance: -dY,
+        gestureSourceType: 'touch'
+      });
+    } catch (err) {}
+
+    // 3. Direct DOM scroll fallback via CDP Runtime evaluation
     try {
       await this.cdpSession.send('Runtime.evaluate', {
         expression: `window.scrollBy({ left: ${dX}, top: ${dY}, behavior: 'instant' });`

@@ -1036,7 +1036,8 @@ app.get('/', (req, res) => {
     function navigate() {
       let url = document.getElementById('urlInput').value.trim();
       if (!url || url.startsWith('chrome-error://')) return;
-      if (!/^https?:\/\//i.test(url) && !/^about:/i.test(url)) {
+      const lower = url.toLowerCase();
+      if (!lower.startsWith('http://') && !lower.startsWith('https://') && !lower.startsWith('about:')) {
         url = 'https://' + url;
       }
       document.getElementById('urlInput').value = url;

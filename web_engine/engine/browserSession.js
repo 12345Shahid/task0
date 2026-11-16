@@ -139,6 +139,48 @@ class BrowserSession {
     this.tabs = [];
     this.tabCounter = 1;
 
+    // Auto-adopt any newly opened popup or background window with proxy credentials
+    this.browser.on('targetcreated', async (target) => {
+      if (target.type() === 'page') {
+        try {
+          const newPage = await target.page();
+          if (newPage && !this.tabs.some(t => t.page === newPage)) {
+            console.log('[BrowserSession] New popup tab opened, configuring proxy authentication & stealth...');
+            const tabObj = await this.setupPage(newPage, `Tab ${this.tabCounter}: Popup`);
+            this.tabs.push(tabObj);
+            if (newPage.url().includes('chromewebdata')) {
+              await newPage.reload().catch(() => {});
+            }
+            await this.switchTab(tabObj.id);
+            if (this.onTabsChanged) {
+              this.onTabsChanged(this.getTabsList());
+            }
+          }
+        } catch (e) {
+          console.warn('[BrowserSession] Target creation handler notice:', e.message);
+        }
+      }
+    });
+
+    this.browser.on('targetdestroyed', async (target) => {
+      try {
+        const closedPage = await target.page();
+        if (closedPage) {
+          const idx = this.tabs.findIndex(t => t.page === closedPage);
+          if (idx !== -1) {
+            const closedTab = this.tabs[idx];
+            this.tabs.splice(idx, 1);
+            if (this.activeTabId === closedTab.id && this.tabs.length > 0) {
+              await this.switchTab(this.tabs[this.tabs.length - 1].id);
+            }
+            if (this.onTabsChanged) {
+              this.onTabsChanged(this.getTabsList());
+            }
+          }
+        }
+      } catch (e) {}
+    });
+
     const initialPages = await this.browser.pages();
     const firstPage = initialPages.length > 0 ? initialPages[0] : await this.browser.newPage();
     const firstTab = await this.setupPage(firstPage, `Tab 1: ${this.profile.name}`);
@@ -571,13 +613,26 @@ class BrowserSession {
   }
 
   /**
-   * Navigate to a URL
+   * Navigate to a URL with auto-prefixing and error immunity
    */
-  async navigate(url, { waitUntil = 'domcontentloaded', timeout = 30000 } = {}) {
+  async navigate(url, { waitUntil = 'domcontentloaded', timeout = 25000 } = {}) {
     if (!this.isActive || !this.page) {
       throw new Error('Browser session is not active');
     }
-    const response = await this.page.goto(url, { waitUntil, timeout });
+    let targetUrl = (url || '').trim();
+    if (!targetUrl || targetUrl.startsWith('chrome-error://')) {
+      return { url: this.page.url(), title: 'Current Page', tabs: this.getTabsList() };
+    }
+    if (!/^https?:\/\//i.test(targetUrl) && !/^about:/i.test(targetUrl)) {
+      targetUrl = 'https://' + targetUrl;
+    }
+
+    try {
+      await this.page.goto(targetUrl, { waitUntil, timeout });
+    } catch (err) {
+      console.warn(`[BrowserSession] Navigation to ${targetUrl} warning: ${err.message}`);
+    }
+
     const currentTab = this.tabs.find(t => t.id === this.activeTabId);
     if (currentTab) {
       currentTab.url = this.page.url();
@@ -585,8 +640,7 @@ class BrowserSession {
     }
     return {
       url: this.page.url(),
-      status: response ? response.status() : 200,
-      title: await this.page.title(),
+      title: await this.page.title().catch(() => 'Page'),
       tabs: this.getTabsList()
     };
   }
@@ -596,7 +650,11 @@ class BrowserSession {
    */
   async reload() {
     if (!this.isActive || !this.page) return;
-    await this.page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+    try {
+      await this.page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 });
+    } catch (e) {
+      console.warn('[BrowserSession] Reload warning:', e.message);
+    }
   }
 
   /**
@@ -604,12 +662,20 @@ class BrowserSession {
    */
   async goBack() {
     if (!this.isActive || !this.page) return;
-    await this.page.goBack({ waitUntil: 'domcontentloaded', timeout: 15000 });
+    try {
+      await this.page.goBack({ waitUntil: 'domcontentloaded', timeout: 15000 });
+    } catch (e) {
+      console.warn('[BrowserSession] GoBack warning:', e.message);
+    }
   }
 
   async goForward() {
     if (!this.isActive || !this.page) return;
-    await this.page.goForward({ waitUntil: 'domcontentloaded', timeout: 15000 });
+    try {
+      await this.page.goForward({ waitUntil: 'domcontentloaded', timeout: 15000 });
+    } catch (e) {
+      console.warn('[BrowserSession] GoForward warning:', e.message);
+    }
   }
 
   /**

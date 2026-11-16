@@ -528,6 +528,8 @@ app.get('/', (req, res) => {
 
     <div class="quick-pill" onclick="quickNav('https://browserscan.net/')">🔍 BrowserScan 100%</div>
     <div class="quick-pill" onclick="quickNav('https://pixelscan.net/')">🛡️ Pixelscan Green</div>
+    <div class="quick-pill" onclick="quickNav('https://aurascan-analytics.vercel.app/')">✨ AuraWealth</div>
+    <div class="quick-pill" onclick="quickNav('https://aurascan-analytics.vercel.app/aura')">🔮 Dating & Aura</div>
     <div class="quick-pill" onclick="quickNav('https://api.ipify.org?format=json')">🌐 My IP Check</div>
   </div>
 
@@ -638,7 +640,9 @@ app.get('/', (req, res) => {
         } else if (msg.type === 'tabs_updated') {
           renderTabs(msg.tabs);
         } else if (msg.type === 'url_changed') {
-          document.getElementById('urlInput').value = msg.url;
+          if (msg.url && !msg.url.startsWith('chrome-error://')) {
+            document.getElementById('urlInput').value = msg.url;
+          }
         } else if (msg.type === 'pong') {
           const latency = Date.now() - msg.clientTime;
           document.getElementById('latencyBadge').innerText = latency + ' ms';
@@ -1016,7 +1020,12 @@ app.get('/', (req, res) => {
     }
 
     function navigate() {
-      const url = document.getElementById('urlInput').value;
+      let url = document.getElementById('urlInput').value.trim();
+      if (!url || url.startsWith('chrome-error://')) return;
+      if (!/^https?:\/\//i.test(url) && !/^about:/i.test(url)) {
+        url = 'https://' + url;
+      }
+      document.getElementById('urlInput').value = url;
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'navigate', url }));
       }

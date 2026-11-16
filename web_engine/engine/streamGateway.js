@@ -125,6 +125,10 @@ class StreamGateway {
 
     this.sessionStreams.add(sessionId);
 
+    session.onTabsChanged = () => {
+      this.broadcastTabsUpdate(sessionId, session);
+    };
+
     session.startScreencast((frame) => {
       this.lastFrames.set(sessionId, frame);
       const frameByteSize = frame.data.length * 0.75;

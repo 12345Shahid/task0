@@ -420,6 +420,28 @@ function generateStealthScript(profile, country, noiseSeed = Math.random(), chro
       }
     } catch(e) {}
 
+    // ====================================================
+    // 9. Seamless Mobile In-Tab Navigation (target="_blank" & window.open)
+    // Prevents unauthenticated popup dropouts and keeps stream focused
+    // ====================================================
+    try {
+      window.addEventListener('click', function(e) {
+        var a = e.target && e.target.closest ? e.target.closest('a') : null;
+        if (a && a.target === '_blank') {
+          a.target = '_self';
+        }
+      }, true);
+
+      var origOpen = window.open;
+      window.open = function(url) {
+        if (url) {
+          window.location.href = url;
+          return window;
+        }
+        return origOpen ? origOpen.apply(this, arguments) : null;
+      };
+    } catch(e) {}
+
   } catch(globalErr) {}
 })();`;
 }

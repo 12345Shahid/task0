@@ -34,7 +34,7 @@ class BrowserSession {
   detectProxyGeo(countryCode = 'US') {
     return new Promise((resolve) => {
       const targetPass = countryCode === 'US'
-        ? `${this.proxyConfig.basePass}_country-US_region-NY`
+        ? `${this.proxyConfig.basePass}_country-US_region-FL`
         : `${this.proxyConfig.basePass}_country-${countryCode}`;
       const auth = Buffer.from(`${this.proxyConfig.user}:${targetPass}`).toString('base64');
       const req = http.request({
@@ -95,7 +95,7 @@ class BrowserSession {
     }
 
     const proxyPass = this.country.code === 'US'
-      ? `${this.proxyConfig.basePass}_country-US_region-NY`
+      ? `${this.proxyConfig.basePass}_country-US_region-FL`
       : `${this.proxyConfig.basePass}_country-${this.country.code}`;
     const proxyServer = `http://${this.proxyConfig.host}`;
 
@@ -209,7 +209,7 @@ class BrowserSession {
 
     // Proxy authentication
     const proxyPass = this.country.code === 'US'
-      ? `${this.proxyConfig.basePass}_country-US_region-NY`
+      ? `${this.proxyConfig.basePass}_country-US_region-FL`
       : `${this.proxyConfig.basePass}_country-${this.country.code}`;
     await page.authenticate({
       username: this.proxyConfig.user,
@@ -600,20 +600,18 @@ class BrowserSession {
         deltaX: dX,
         deltaY: dY
       });
-    } catch (err) {
-      // Direct DOM scroll fallback
-      try {
-        if (this.page) {
-          await this.page.evaluate((sx, sy) => {
-            window.scrollBy({ left: sx, top: sy, behavior: 'instant' });
-          }, dX, dY);
-        }
-      } catch (e) {}
-    }
+    } catch (err) {}
+
+    // Universal DOM scroll fallback via direct CDP Runtime evaluation
+    try {
+      await this.cdpSession.send('Runtime.evaluate', {
+        expression: `window.scrollBy({ left: ${dX}, top: ${dY}, behavior: 'instant' });`
+      });
+    } catch (e) {}
   }
 
   /**
-   * Navigate to a URL with auto-prefixing and error immunity
+   * Navigate to a URL with auto-prefixing, detached-frame resilience, and error immunity
    */
   async navigate(url, { waitUntil = 'domcontentloaded', timeout = 25000 } = {}) {
     if (!this.isActive || !this.page) {
@@ -627,19 +625,41 @@ class BrowserSession {
       targetUrl = 'https://' + targetUrl;
     }
 
+    let navigated = false;
     try {
       await this.page.goto(targetUrl, { waitUntil, timeout });
+      navigated = true;
     } catch (err) {
-      console.warn(`[BrowserSession] Navigation to ${targetUrl} warning: ${err.message}`);
+      console.warn(`[BrowserSession] Navigation to ${targetUrl} via page.goto failed: ${err.message}`);
+      // Fallback directly to CDP Page.navigate which bypasses Puppeteer's frame manager
+      try {
+        if (this.cdpSession) {
+          console.log(`[BrowserSession] Detached frame encountered. Recovering via CDP Page.navigate to ${targetUrl}...`);
+          await this.cdpSession.send('Page.navigate', { url: targetUrl });
+          navigated = true;
+        }
+      } catch (cdpErr) {
+        console.warn(`[BrowserSession] CDP Page.navigate fallback failed: ${cdpErr.message}`);
+      }
     }
+
+    // Refresh page reference in case frame tree was reconstructed
+    try {
+      const allPages = await this.browser.pages();
+      if (allPages.length > 0 && (!this.page || this.page.isClosed())) {
+        this.page = allPages[0];
+      }
+    } catch (e) {}
 
     const currentTab = this.tabs.find(t => t.id === this.activeTabId);
     if (currentTab) {
-      currentTab.url = this.page.url();
-      try { currentTab.title = (await this.page.title()) || currentTab.title; } catch (e) {}
+      try {
+        currentTab.url = this.page.url();
+        currentTab.title = (await this.page.title()) || currentTab.title;
+      } catch (e) {}
     }
     return {
-      url: this.page.url(),
+      url: this.page ? this.page.url() : targetUrl,
       title: await this.page.title().catch(() => 'Page'),
       tabs: this.getTabsList()
     };

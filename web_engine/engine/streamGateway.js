@@ -56,7 +56,10 @@ class StreamGateway {
           targetSessionId = newRecord.id;
           session = newRecord.session;
           clientInfo.sessionId = targetSessionId;
-          session.navigate('https://browserscan.net/').catch(() => {});
+          const curUrl = session.page ? session.page.url() : '';
+          if (!curUrl || curUrl === 'about:blank') {
+            session.navigate('https://browserscan.net/').catch(() => {});
+          }
         } catch(e) {
           console.error('[StreamGateway] Auto-spawn error:', e.message);
         }

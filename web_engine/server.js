@@ -143,6 +143,9 @@ app.post('/api/session/stop', async (req, res) => {
 // Phase 4 Web Dashboard Client UI
 // ==========================================
 app.get('/', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -539,7 +542,7 @@ app.get('/', (req, res) => {
       <div class="device-notch"></div>
       <div class="screen-container" style="position: relative;">
         <canvas id="screenCanvas" width="412" height="915"></canvas>
-        <div id="loadingOverlay" style="display: flex; position: absolute; inset: 0; background: rgba(10, 15, 29, 0.95); flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #fff; z-index: 30;">
+        <div id="loadingOverlay" onclick="this.style.display='none'" style="display: flex; position: absolute; inset: 0; background: rgba(10, 15, 29, 0.95); flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #fff; z-index: 30; cursor: pointer;" title="Click anywhere to dismiss">
           <div style="width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
           <span id="loadingText" style="font-size: 13px; font-weight: 500; color: #94a3b8;">Connecting to anti-detect session...</span>
         </div>
@@ -647,6 +650,8 @@ app.get('/', (req, res) => {
         } else if (msg.type === 'url_changed') {
           if (msg.url && !msg.url.startsWith('chrome-error://')) {
             document.getElementById('urlInput').value = msg.url;
+          } else if (msg.url && msg.url.startsWith('chrome-error://')) {
+            document.getElementById('urlInput').value = '⚠️ Connection failed to target site';
           }
         } else if (msg.type === 'pong') {
           const latency = Date.now() - msg.clientTime;
@@ -658,6 +663,10 @@ app.get('/', (req, res) => {
           if (overlay) {
             overlay.style.display = 'flex';
             document.getElementById('loadingText').innerText = msg.message;
+            // Guarantee auto-dismissal after 2.5s so overlay NEVER stays stuck
+            setTimeout(() => {
+              if (overlay) overlay.style.display = 'none';
+            }, 2500);
           }
         }
       };

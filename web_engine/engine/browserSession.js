@@ -685,7 +685,18 @@ class BrowserSession {
     try {
       await this.page.goBack({ waitUntil: 'domcontentloaded', timeout: 15000 });
     } catch (e) {
-      console.warn('[BrowserSession] GoBack warning:', e.message);
+      console.warn('[BrowserSession] GoBack page.goBack fallback:', e.message);
+      try {
+        if (this.cdpSession) {
+          const history = await this.cdpSession.send('Page.getNavigationHistory');
+          if (history && history.currentIndex > 0) {
+            const prevEntry = history.entries[history.currentIndex - 1];
+            await this.cdpSession.send('Page.navigateToHistoryEntry', { entryId: prevEntry.id });
+          }
+        }
+      } catch (cdpErr) {
+        console.warn('[BrowserSession] CDP goBack fallback failed:', cdpErr.message);
+      }
     }
   }
 
@@ -694,7 +705,18 @@ class BrowserSession {
     try {
       await this.page.goForward({ waitUntil: 'domcontentloaded', timeout: 15000 });
     } catch (e) {
-      console.warn('[BrowserSession] GoForward warning:', e.message);
+      console.warn('[BrowserSession] GoForward page.goForward fallback:', e.message);
+      try {
+        if (this.cdpSession) {
+          const history = await this.cdpSession.send('Page.getNavigationHistory');
+          if (history && history.currentIndex < history.entries.length - 1) {
+            const nextEntry = history.entries[history.currentIndex + 1];
+            await this.cdpSession.send('Page.navigateToHistoryEntry', { entryId: nextEntry.id });
+          }
+        }
+      } catch (cdpErr) {
+        console.warn('[BrowserSession] CDP goForward fallback failed:', cdpErr.message);
+      }
     }
   }
 

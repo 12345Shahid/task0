@@ -76,6 +76,8 @@ class StreamGateway {
           bandwidthMB: proxyMB
         }));
 
+        this.ensureScreencast(targetSessionId, session);
+
         // Immediately push latest frame if available so reconnecting never sees a black screen
         const cachedFrame = this.lastFrames.get(targetSessionId);
         if (cachedFrame) {
@@ -89,9 +91,23 @@ class StreamGateway {
             bandwidthMB: proxyMB,
             timestamp: cachedFrame.timestamp
           }));
+        } else {
+          // Send an instant screenshot so the loading overlay immediately unlocks
+          session.takeScreenshot({ encoding: 'base64' }).then((data) => {
+            if (data && ws.readyState === 1) {
+              ws.send(JSON.stringify({
+                type: 'frame',
+                sessionId: targetSessionId,
+                data: data,
+                metadata: { deviceWidth: session.profile.viewport.width, deviceHeight: session.profile.viewport.height },
+                fps: 0,
+                proxyMB: proxyMB,
+                bandwidthMB: proxyMB,
+                timestamp: Date.now()
+              }));
+            }
+          }).catch(() => {});
         }
-
-        this.ensureScreencast(targetSessionId, session);
       } else {
         ws.send(JSON.stringify({
           type: 'status',

@@ -637,6 +637,11 @@ app.get('/', (req, res) => {
           if (msg.tabs) {
             renderTabs(msg.tabs);
           }
+          // Auto-dismiss loading overlay within 1.2s if screencast frame is delayed
+          setTimeout(() => {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+          }, 1200);
         } else if (msg.type === 'tabs_updated') {
           renderTabs(msg.tabs);
         } else if (msg.type === 'url_changed') {

@@ -6,36 +6,49 @@ class SessionManager {
     this.sessions = new Map(); // sessionId -> { session, createdAt, lastActiveAt, timer }
     this.maxSessions = maxSessions;
     this.idleTimeoutMs = idleTimeoutMs;
+    this._creatingPromise = null;
   }
 
   /**
-   * Create a new isolated session
+   * Create a new isolated session (Guarded against concurrent duplicate spawns)
    */
   async createSession({ profileId = 'poco_m3', countryCode = 'US', headless = 'new' } = {}) {
-    if (this.sessions.size >= this.maxSessions) {
-      // Find oldest session to terminate
-      const oldestId = Array.from(this.sessions.keys())[0];
-      await this.destroySession(oldestId);
+    if (this._creatingPromise) {
+      return await this._creatingPromise;
     }
 
-    const sessionId = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
-    const session = new BrowserSession();
+    this._creatingPromise = (async () => {
+      try {
+        if (this.sessions.size >= this.maxSessions) {
+          // Find oldest session to terminate
+          const oldestId = Array.from(this.sessions.keys())[0];
+          await this.destroySession(oldestId);
+        }
 
-    const startResult = await session.start({ profileId, countryCode, headless });
+        const sessionId = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
+        const session = new BrowserSession();
 
-    const sessionRecord = {
-      id: sessionId,
-      session,
-      createdAt: Date.now(),
-      lastActiveAt: Date.now(),
-      meta: startResult
-    };
+        const startResult = await session.start({ profileId, countryCode, headless });
 
-    // Auto-timeout timer
-    this.resetIdleTimer(sessionRecord);
+        const sessionRecord = {
+          id: sessionId,
+          session,
+          createdAt: Date.now(),
+          lastActiveAt: Date.now(),
+          meta: startResult
+        };
 
-    this.sessions.set(sessionId, sessionRecord);
-    return sessionRecord;
+        // Auto-timeout timer
+        this.resetIdleTimer(sessionRecord);
+
+        this.sessions.set(sessionId, sessionRecord);
+        return sessionRecord;
+      } finally {
+        this._creatingPromise = null;
+      }
+    })();
+
+    return await this._creatingPromise;
   }
 
   /**

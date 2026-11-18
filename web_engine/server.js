@@ -174,10 +174,13 @@ app.get('/', (req, res) => {
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       height: 100vh;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      overscroll-behavior: none;
       user-select: none;
+      -webkit-user-select: none;
     }
 
     /* Top Command Header */
@@ -465,6 +468,59 @@ app.get('/', (req, res) => {
       transform: scale(1.08);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Mobile Phone Responsive Optimization */
+    @media (max-width: 768px) {
+      header {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 6px 8px;
+        gap: 6px;
+        scrollbar-width: none;
+      }
+      header::-webkit-scrollbar, .sub-bar::-webkit-scrollbar, .tabs-strip::-webkit-scrollbar {
+        display: none;
+      }
+      header > *, .sub-bar > * {
+        flex-shrink: 0;
+      }
+      .brand { font-size: 13px; }
+      .badge { display: none; }
+      select, button { font-size: 12px; padding: 4px 8px; }
+      .tabs-strip { padding: 4px 8px 0 8px; }
+      .tab-item { padding: 4px 10px; font-size: 11px; max-width: 140px; }
+      .sub-bar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 5px 8px;
+        gap: 6px;
+        scrollbar-width: none;
+      }
+      .url-group {
+        min-width: 210px;
+        max-width: 72vw;
+      }
+      .url-input { font-size: 12px; padding: 5px 8px; }
+      .quick-pill { white-space: nowrap; font-size: 11px; padding: 4px 9px; }
+      main { padding: 4px; overscroll-behavior: none; }
+      .paste-bar {
+        bottom: 8px;
+        left: 8px;
+        right: 54px;
+        padding: 4px 8px;
+        gap: 6px;
+      }
+      .paste-input { width: 100%; flex: 1; min-width: 0; font-size: 12px; }
+      .scroll-dock {
+        right: 6px;
+        bottom: 8px;
+        padding: 4px;
+        gap: 4px;
+      }
+      .scroll-btn { width: 32px; height: 32px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>
@@ -572,9 +628,14 @@ app.get('/', (req, res) => {
     let currentViewport = { width: 412, height: 915 };
     let pingInterval = null;
     let lastPing = Date.now();
-    let isFramed = true;
+    let isFramed = window.innerWidth > 768;
     let currentSessionId = null;
     let isMobileSession = true;
+
+    if (!isFramed) {
+      document.getElementById('deviceFrame').classList.remove('framed');
+      document.getElementById('frameToggleBtn').innerText = '🖥️ Frame: Off';
+    }
 
     function connectWebSocket(sessionId = null) {
       if (ws) {
@@ -732,9 +793,10 @@ app.get('/', (req, res) => {
 
     function adjustCanvasScale() {
       const main = document.querySelector('main');
-      const maxW = main.clientWidth - (isFramed ? 60 : 30);
-      const maxH = main.clientHeight - (isFramed ? 100 : 40);
-      const scale = Math.min(maxW / canvas.width, maxH / canvas.height, 1);
+      const isSmall = window.innerWidth <= 768;
+      const maxW = main.clientWidth - (isFramed ? 60 : (isSmall ? 8 : 24));
+      const maxH = main.clientHeight - (isFramed ? 100 : (isSmall ? 14 : 32));
+      const scale = Math.min(maxW / canvas.width, maxH / canvas.height, isSmall ? 1.5 : 1);
       canvas.style.width = (canvas.width * scale) + 'px';
       canvas.style.height = (canvas.height * scale) + 'px';
     }

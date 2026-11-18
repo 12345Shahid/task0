@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const http = require('http');
+const https = require('https');
 const { getProfile } = require('../config/profiles');
 const { getCountry } = require('../config/countries');
 const { generateStealthScript } = require('../stealth/fingerprintInjector');
@@ -15,9 +16,9 @@ class BrowserSession {
     this.country = null;
     this.noiseSeed = Math.random();
     this.proxyConfig = {
-      host: 'thehub.proxy-cheap.com:8080',
-      user: 'Ltj8SfJpTEukyVn',
-      basePass: '0Pa7rRMzcehfeLR'
+      host: process.env.PROXY_HOST || 'thehub.proxy-cheap.com:8080',
+      user: process.env.PROXY_USER || '9f6uCMz4ZuBSS5K',
+      basePass: process.env.PROXY_PASS || 'cfNGRC9t5QAqLeP'
     };
     this.proxyBytesTransferred = 0;
     this.isActive = false;
@@ -29,6 +30,54 @@ class BrowserSession {
   }
 
   /**
+   * Auto-fetch latest residential proxy credentials from Proxy-Cheap API if rotated
+   */
+  refreshProxyCredentials() {
+    return new Promise((resolve) => {
+      const apiKey = process.env.PROXY_CHEAP_API_KEY;
+      const apiSecret = process.env.PROXY_CHEAP_API_SECRET;
+      if (!apiKey || !apiSecret) {
+        resolve(false);
+        return;
+      }
+      const req = https.request({
+        hostname: 'api.proxy-cheap.com',
+        path: '/proxies',
+        method: 'GET',
+        headers: {
+          'X-Api-Key': apiKey,
+          'X-Api-Secret': apiSecret,
+          'Accept': 'application/json'
+        },
+        timeout: 6000
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            const list = parsed.proxies || [];
+            const active = list.find(p => p.status === 'ACTIVE' && p.networkType === 'RESIDENTIAL' && p.authentication) || list.find(p => p.authentication);
+            if (active && active.authentication && active.authentication.username && active.authentication.password) {
+              this.proxyConfig.user = active.authentication.username;
+              this.proxyConfig.basePass = active.authentication.password;
+              process.env.PROXY_USER = active.authentication.username;
+              process.env.PROXY_PASS = active.authentication.password;
+              console.log(`[BrowserSession] Auto-refreshed Proxy-Cheap credentials -> user: ${this.proxyConfig.user}`);
+              resolve(true);
+              return;
+            }
+          } catch (e) {}
+          resolve(false);
+        });
+      });
+      req.on('error', () => resolve(false));
+      req.on('timeout', () => { req.destroy(); resolve(false); });
+      req.end();
+    });
+  }
+
+  /**
    * Fast geo & timezone lookup for the residential proxy exit IP
    */
   detectProxyGeo(countryCode = 'US') {
@@ -37,9 +86,10 @@ class BrowserSession {
         ? `${this.proxyConfig.basePass}_country-US_region-FL`
         : `${this.proxyConfig.basePass}_country-${countryCode}`;
       const auth = Buffer.from(`${this.proxyConfig.user}:${targetPass}`).toString('base64');
+      const [proxyHost, proxyPortStr] = this.proxyConfig.host.split(':');
       const req = http.request({
-        host: 'thehub.proxy-cheap.com',
-        port: 8080,
+        host: proxyHost || 'thehub.proxy-cheap.com',
+        port: parseInt(proxyPortStr || '8080', 10),
         path: 'http://ip-api.com/json/?fields=status,country,countryCode,regionName,city,timezone,lat,lon,query',
         headers: {
           'Proxy-Authorization': 'Basic ' + auth,
@@ -81,7 +131,13 @@ class BrowserSession {
 
     // Dynamically synchronize IP geolocation & timezone from residential proxy exit node
     try {
-      const geoInfo = await this.detectProxyGeo(this.country.code);
+      let geoInfo = await this.detectProxyGeo(this.country.code);
+      if (!geoInfo) {
+        const refreshed = await this.refreshProxyCredentials();
+        if (refreshed) {
+          geoInfo = await this.detectProxyGeo(this.country.code);
+        }
+      }
       if (geoInfo && geoInfo.timezone) {
         console.log(`[BrowserSession] Synchronized proxy IP ${geoInfo.query} (${geoInfo.regionName || ''}, ${geoInfo.city || ''}) timezone -> ${geoInfo.timezone}`);
         this.country.timezone = geoInfo.timezone;

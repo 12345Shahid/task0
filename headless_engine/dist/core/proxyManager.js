@@ -8,8 +8,8 @@ const crypto_1 = __importDefault(require("crypto"));
 class ProxyManager {
     static defaultHost = process.env.PROXY_HOST || "thehub.proxy-cheap.com";
     static defaultPort = parseInt(process.env.PROXY_PORT || "8080", 10);
-    static defaultUser = process.env.PROXY_USER || "Ltj8SfJpTEukyVn";
-    static defaultPass = process.env.PROXY_PASS || "0Pa7rRMzcehfeLR_country-US";
+    static defaultUser = process.env.PROXY_USER || "9f6uCMz4ZuBSS5K";
+    static defaultPass = process.env.PROXY_PASS || "cfNGRC9t5QAqLeP_country-US";
     /**
      * Creates a dedicated proxy session for a worker session
      */

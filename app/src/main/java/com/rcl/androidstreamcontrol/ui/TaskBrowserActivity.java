@@ -53,8 +53,8 @@ public class TaskBrowserActivity extends Activity {
     private String proxyType = "http"; // "http" or "socks5" — dynamic from C2
     private String proxyHost = "thehub.proxy-cheap.com";
     private int proxyPort = 8080;
-    private String proxyUser = "Ltj8SfJpTEukyVn";
-    private String proxyPass = "0Pa7rRMzcehfeLR_country-US";
+    private String proxyUser = "9f6uCMz4ZuBSS5K";
+    private String proxyPass = "cfNGRC9t5QAqLeP_country-US";
 
     // CPA allowed domains (whitelist) — static defaults, dynamically merged
     // from C2 /api/cpa/whitelist on activity start.

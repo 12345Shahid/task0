@@ -11,8 +11,8 @@ export interface ProxyConfig {
 export class ProxyManager {
   private static defaultHost = process.env.PROXY_HOST || "thehub.proxy-cheap.com";
   private static defaultPort = parseInt(process.env.PROXY_PORT || "8080", 10);
-  private static defaultUser = process.env.PROXY_USER || "Ltj8SfJpTEukyVn";
-  private static defaultPass = process.env.PROXY_PASS || "0Pa7rRMzcehfeLR_country-US";
+  private static defaultUser = process.env.PROXY_USER || "9f6uCMz4ZuBSS5K";
+  private static defaultPass = process.env.PROXY_PASS || "cfNGRC9t5QAqLeP_country-US";
 
   /**
    * Creates a dedicated proxy session for a worker session

@@ -66,8 +66,8 @@ public class WebViewProxyManager {
     private static volatile String proxyType = "http";
     private static volatile String proxyHost = "thehub.proxy-cheap.com";
     private static volatile int proxyPort = 8080;
-    private static volatile String proxyUser = "Ltj8SfJpTEukyVn";
-    private static volatile String proxyPass = "0Pa7rRMzcehfeLR_country-US";
+    private static volatile String proxyUser = "9f6uCMz4ZuBSS5K";
+    private static volatile String proxyPass = "cfNGRC9t5QAqLeP_country-US";
     private static volatile String activeCountry = "US"; // Default country lock
     private static volatile String currentSessionTag = "active";
     private static volatile String activeGeoState = "TN";
@@ -348,7 +348,7 @@ public class WebViewProxyManager {
         if (countryCode == null || countryCode.trim().isEmpty()) countryCode = "US";
         activeCountry = countryCode.trim().toUpperCase();
         activeGeoCity = null; // Clear city override when country changes
-        proxyPass = "0Pa7rRMzcehfeLR_country-" + activeCountry;
+        proxyPass = "cfNGRC9t5QAqLeP_country-" + activeCountry;
         Log.d(TAG, "Proxy country locked to: " + activeCountry + " (" + getCountryFlag(activeCountry) + ")");
         if (!isProxyStopped) {
             applySelectiveProxy();
@@ -360,7 +360,7 @@ public class WebViewProxyManager {
     }
 
     public static String getEffectiveProxyPass(boolean includeCity) {
-        String base = (proxyPass != null) ? proxyPass : "0Pa7rRMzcehfeLR";
+        String base = (proxyPass != null) ? proxyPass : "cfNGRC9t5QAqLeP";
         base = base.replaceAll("_(country|city|session|state)-[^_]+", "");
         StringBuilder sb = new StringBuilder(base);
         String country = getActiveCountry();

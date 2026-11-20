@@ -3,8 +3,8 @@
 
 PROXY_HOST = "thehub.proxy-cheap.com"
 PROXY_PORT = 8080
-PROXY_USER = "Ltj8SfJpTEukyVn"
-PROXY_PASS = "0Pa7rRMzcehfeLR_country-US"
+PROXY_USER = "9f6uCMz4ZuBSS5K"
+PROXY_PASS = "cfNGRC9t5QAqLeP_country-US"
 
 # Quality & Anti-Fraud Thresholds
 MAX_ACCEPTABLE_FRAUD_SCORE = 25       # 0-25 is Low Risk; >25 is Medium/High Risk

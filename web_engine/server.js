@@ -22,6 +22,24 @@ const streamGateway = new StreamGateway(server, sessionManager);
 // ==========================================
 // Health & Telemetry Endpoints
 // ==========================================
+app.get('/download/apk', (req, res) => {
+  const filePath = path.join(__dirname, 'downloads', 'AuraBrowser_v56_arm64.apk');
+  if (require('fs').existsSync(filePath)) {
+    res.download(filePath, 'AuraBrowser_v56_arm64.apk');
+  } else {
+    res.status(404).send('APK not found on server');
+  }
+});
+
+app.get('/download/universal', (req, res) => {
+  const filePath = path.join(__dirname, 'downloads', 'AuraBrowser_v56_universal.apk');
+  if (require('fs').existsSync(filePath)) {
+    res.download(filePath, 'AuraBrowser_v56_universal.apk');
+  } else {
+    res.status(404).send('APK not found on server');
+  }
+});
+
 app.get('/health', (req, res) => {
   const memoryUsage = process.memoryUsage();
   res.json({
@@ -592,6 +610,7 @@ app.get('/', (req, res) => {
     <div class="quick-pill" onclick="quickNav('https://aurascan-analytics.vercel.app/aura')">🔮 Dating & Aura</div>
     <div class="quick-pill" onclick="quickNav('https://aurascan-analytics.vercel.app/aura#partner-links')">💘 Partner Links Directory</div>
     <div class="quick-pill" onclick="quickNav('https://api.ipify.org?format=json')">🌐 My IP Check</div>
+    <a href="/download/apk" style="text-decoration:none;"><div class="quick-pill" style="background:#059669;color:#fff;border-color:#10b981;">📥 Download APK v56</div></a>
   </div>
 
   <!-- Main Viewport Workspace -->

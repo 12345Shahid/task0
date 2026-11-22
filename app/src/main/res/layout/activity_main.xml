@@ -4,11 +4,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0A0F">
+    android:background="#0A0A12">
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:fillViewport="true"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/bottom_nav">
 
@@ -16,53 +17,180 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:paddingHorizontal="20dp"
+            android:paddingTop="28dp"
+            android:paddingBottom="24dp">
 
-            <!-- The header text and JARVIS orb have been removed for stealth -->
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Today's Overview"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:layout_marginTop="32dp"
-                android:layout_marginBottom="16dp"/>
-
+            <!-- App Header -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="100dp"
-                android:background="#151520"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:baselineAligned="false">
-                
+                android:layout_marginBottom="20dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Mind Anchor"
+                        android:textColor="#FFFFFF"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="A safe space for focus &amp; reflection"
+                        android:textColor="#8E8EA8"
+                        android:textSize="13sp"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/btn_quick_grounding"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🌿 Breathe"
+                    android:textColor="#00E5FF"
+                    android:textSize="13sp"
+                    android:background="@drawable/bg_mood_item"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="8dp" />
+            </LinearLayout>
+
+            <!-- 1. Quick Mood Check-in Card -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_dark"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="How are you feeling right now?"
+                    android:textColor="#E0E0F0"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/mood_status_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tap to log today's mood"
+                    android:textColor="#7A7A96"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/mood_btn_happy"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="😊"
+                        android:textSize="22sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_mood_item"
+                        android:layout_marginEnd="6dp" />
+
+                    <TextView
+                        android:id="@+id/mood_btn_calm"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="😌"
+                        android:textSize="22sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_mood_item"
+                        android:layout_marginEnd="6dp" />
+
+                    <TextView
+                        android:id="@+id/mood_btn_neutral"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="😐"
+                        android:textSize="22sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_mood_item"
+                        android:layout_marginEnd="6dp" />
+
+                    <TextView
+                        android:id="@+id/mood_btn_frustrated"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="😫"
+                        android:textSize="22sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_mood_item"
+                        android:layout_marginEnd="6dp" />
+
+                    <TextView
+                        android:id="@+id/mood_btn_sad"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="😔"
+                        android:textSize="22sp"
+                        android:gravity="center"
+                        android:background="@drawable/bg_mood_item" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 2. Today's Overview (Tasks, Habits, Mood) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="88dp"
+                android:background="@drawable/bg_card_dark"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false"
+                android:layout_marginBottom="16dp">
+
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center">
+
                     <TextView
                         android:id="@+id/overview_tasks_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0/0"
                         android:textColor="#00E5FF"
-                        android:textSize="28sp"
+                        android:textSize="24sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Tasks"
-                        android:textColor="#888899" />
+                        android:textColor="#7A7A96"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="1dp"
-                    android:layout_height="40dp"
-                    android:background="#333344" />
+                    android:layout_height="36dp"
+                    android:background="#262638" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -70,25 +198,28 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center">
+
                     <TextView
                         android:id="@+id/overview_habits_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0/0"
-                        android:textColor="#00E5FF"
-                        android:textSize="28sp"
+                        android:textColor="#7C4DFF"
+                        android:textSize="24sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Habits"
-                        android:textColor="#888899" />
+                        android:textColor="#7A7A96"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="1dp"
-                    android:layout_height="40dp"
-                    android:background="#333344" />
+                    android:layout_height="36dp"
+                    android:background="#262638" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -96,47 +227,181 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center">
+
                     <TextView
                         android:id="@+id/overview_mood_text"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="--"
                         android:textColor="#00E5FF"
-                        android:textSize="28sp"
+                        android:textSize="24sp"
                         android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Mood"
-                        android:textColor="#888899" />
+                        android:textColor="#7A7A96"
+                        android:textSize="12sp" />
                 </LinearLayout>
-
             </LinearLayout>
 
+            <!-- 3. Thought Journal Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card_dark"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📝 Thought Journal"
+                    android:textColor="#E0E0F0"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Express your thoughts freely without judgment."
+                    android:textColor="#7A7A96"
+                    android:textSize="12sp"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="10dp" />
+
+                <EditText
+                    android:id="@+id/journal_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:background="@drawable/bg_mood_item"
+                    android:padding="12dp"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#5A5A72"
+                    android:hint="What is on your mind right now?"
+                    android:gravity="top|start"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="10dp">
+
+                    <TextView
+                        android:id="@+id/journal_recent_preview"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="No thoughts saved yet today."
+                        android:textColor="#666680"
+                        android:textSize="11sp"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
+
+                    <Button
+                        android:id="@+id/btn_save_thought"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="Save Thought"
+                        android:textSize="12sp"
+                        android:backgroundTint="#00B4D8"
+                        android:textColor="#0A0A12"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="14dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 4. Quick Actions (Focus, Tasks) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:id="@+id/card_action_focus"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card_dark"
+                    android:padding="14dp"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🎧 Focus Timer"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Forgiving study session without penalties."
+                        android:textColor="#7A7A96"
+                        android:textSize="11sp"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/card_action_tasks"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card_dark"
+                    android:padding="14dp"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📋 My Tasks"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Track micro-goals and daily gentle habits."
+                        android:textColor="#7A7A96"
+                        android:textSize="11sp"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 5. Remote Unlock Setup (Security Utility) -->
             <Button
                 android:id="@+id/btn_setup_unlock"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="12dp"
                 android:backgroundTint="#1565C0"
                 android:text="🔑 Setup Remote Unlock"
                 android:textColor="#FFFFFF"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:padding="14dp" />
 
         </LinearLayout>
     </ScrollView>
 
-    <!-- Bottom Navigation Bar Placeholder -->
-    <!-- Send debug logs button removed -->
-
+    <!-- Bottom Navigation Bar -->
     <LinearLayout
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="60dp"
         android:orientation="horizontal"
-        android:background="#151520"
+        android:background="#12121E"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
@@ -150,7 +415,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="🏠"
-                android:textSize="24sp" />
+                android:textSize="20sp" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -170,7 +435,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="📋"
-                android:textSize="24sp" />
+                android:textSize="20sp" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -190,7 +455,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="🎧"
-                android:textSize="24sp" />
+                android:textSize="20sp" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

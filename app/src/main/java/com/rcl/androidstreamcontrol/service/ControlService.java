@@ -1065,6 +1065,20 @@ if (AgoraManager.isWebRTCActive && (System.currentTimeMillis() - lastAtsTime > 1
         dispatchGesture(gesture, null, null);
     }
 
+    public void performSwipe(float startX, float startY, float endX, float endY, long duration) {
+        lastAtsTime = System.currentTimeMillis();
+        android.util.Log.d(TAG, "Dispatching Gesture Swipe from (" + startX + "," + startY + ") to (" + endX + "," + endY + ") duration=" + duration);
+
+        Path path = new Path();
+        path.moveTo(startX, startY);
+        path.lineTo(endX, endY);
+
+        GestureDescription.StrokeDescription stroke = new GestureDescription.StrokeDescription(path, 0, duration, false);
+        GestureDescription gesture = new GestureDescription.Builder().addStroke(stroke).build();
+
+        dispatchGesture(gesture, null, null);
+    }
+
     public void performRemoteTap(float x, float y) {
         lastAtsTime = System.currentTimeMillis();
         android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();

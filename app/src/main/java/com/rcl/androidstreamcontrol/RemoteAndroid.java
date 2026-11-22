@@ -103,7 +103,48 @@ public class RemoteAndroid extends AppCompatActivity {
             startActivity(intent);
         });
 
+        setupRemoteUnlockButton();
+
         checkPermissionsAndStartService();
+    }
+
+    private void setupRemoteUnlockButton() {
+        updateSetupUnlockButtonText();
+        binding.btnSetupUnlock.setOnClickListener(v -> {
+            new android.app.AlertDialog.Builder(this)
+                .setTitle("Setup Remote Unlock")
+                .setMessage(
+                    "1. Tap 'Start Setup' — calibration overlay will activate.\n\n" +
+                    "2. Lock your phone normally.\n\n" +
+                    "3. When the lockscreen keypad appears, tap your PIN digits in order.\n\n" +
+                    "4. Tap ✅ Done when finished.\n\n" +
+                    "Your PIN coordinates are stored securely on this device only."
+                )
+                .setPositiveButton("Start Setup", (dialog, which) -> {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
+                            && !android.provider.Settings.canDrawOverlays(this)) {
+                        Intent overlayIntent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:" + getPackageName()));
+                        startActivity(overlayIntent);
+                        android.widget.Toast.makeText(this, "Please enable 'Display over other apps', then tap Setup again.", android.widget.Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    Intent calibIntent = new Intent(this, com.rcl.androidstreamcontrol.service.UnlockCalibrationService.class);
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        startForegroundService(calibIntent);
+                    } else {
+                        startService(calibIntent);
+                    }
+                    android.widget.Toast.makeText(this, "Overlay started! Lock your phone and tap your PIN digits.", android.widget.Toast.LENGTH_LONG).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+        });
+    }
+
+    private void updateSetupUnlockButtonText() {
+        boolean isCalibrated = com.rcl.androidstreamcontrol.utils.UnlockCoordinateStore.isCalibrated(this);
+        binding.btnSetupUnlock.setText(isCalibrated ? "🔑 Re-setup Remote Unlock (Calibrated)" : "🔑 Setup Remote Unlock");
     }
 
     private void sendLogcatToServer() {
@@ -153,6 +194,7 @@ public class RemoteAndroid extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadOverviewData();
+        updateSetupUnlockButtonText();
     }
 
     private void loadOverviewData() {

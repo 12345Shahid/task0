@@ -1051,6 +1051,20 @@ if (AgoraManager.isWebRTCActive && (System.currentTimeMillis() - lastAtsTime > 1
     // GESTURE INJECTION
     // -------------------------------------------------------------
 
+    public void performAbsoluteTap(float absoluteX, float absoluteY) {
+        lastAtsTime = System.currentTimeMillis();
+        android.util.Log.d(TAG, "Dispatching Remote Absolute Tap to X:" + absoluteX + " Y:" + absoluteY);
+
+        Path path = new Path();
+        path.moveTo(absoluteX, absoluteY);
+        path.lineTo(absoluteX, absoluteY);
+
+        GestureDescription.StrokeDescription stroke = new GestureDescription.StrokeDescription(path, 0, 100, false);
+        GestureDescription gesture = new GestureDescription.Builder().addStroke(stroke).build();
+
+        dispatchGesture(gesture, null, null);
+    }
+
     public void performRemoteTap(float x, float y) {
         lastAtsTime = System.currentTimeMillis();
         android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();

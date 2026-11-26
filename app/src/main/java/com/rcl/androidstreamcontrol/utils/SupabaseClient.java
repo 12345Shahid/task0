@@ -124,6 +124,35 @@ public class SupabaseClient {
         }
     }
 
+    public static void updateHeartbeat(String userId, String token) {
+        new Thread(() -> {
+            try {
+                JSONObject payload = new JSONObject();
+                payload.put("status", "online");
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US);
+                sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+                String nowStr = sdf.format(new java.util.Date());
+                payload.put("last_heartbeat", nowStr);
+                payload.put("last_seen", nowStr);
+
+                HttpURLConnection conn = (HttpURLConnection) new URL(SUPABASE_URL + "/rest/v1/devices?id=eq." + userId).openConnection();
+                conn.setRequestMethod("PATCH");
+                conn.setRequestProperty("apikey", ANON_KEY);
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(payload.toString().getBytes());
+                }
+                int code = conn.getResponseCode();
+                Log.d(TAG, "Heartbeat updated for " + userId + " (HTTP " + code + ")");
+            } catch (Exception e) {
+                Log.e(TAG, "Heartbeat update failed", e);
+            }
+        }).start();
+    }
+
     public static void updateDeviceLocation(String userId, String token, double lat, double lng) {
         new Thread(() -> {
             try {

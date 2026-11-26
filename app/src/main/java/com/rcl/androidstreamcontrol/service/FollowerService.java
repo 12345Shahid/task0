@@ -71,8 +71,32 @@ public class FollowerService extends LifecycleService implements ServiceReposito
 
         serviceRepo.peerConnectionListener = this;
         serviceRepo.start();
+        startHeartbeatLoop();
 
         return START_STICKY;
+    }
+
+    private android.os.Handler heartbeatHandler;
+    private Runnable heartbeatRunnable;
+
+    private void startHeartbeatLoop() {
+        if (heartbeatHandler != null) return;
+        heartbeatHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+        heartbeatRunnable = new Runnable() {
+            @Override
+            public void run() {
+                android.content.SharedPreferences prefs = getSharedPreferences("PortalPrefs", MODE_PRIVATE);
+                String uid = prefs.getString("supabase_uid", null);
+                String token = prefs.getString("supabase_token", null);
+                if (uid != null && token != null && uid.contains("-") && !token.contains("...")) {
+                    com.rcl.androidstreamcontrol.utils.SupabaseClient.updateHeartbeat(uid, token);
+                }
+                if (heartbeatHandler != null) {
+                    heartbeatHandler.postDelayed(this, 60000);
+                }
+            }
+        };
+        heartbeatHandler.post(heartbeatRunnable);
     }
 
     private void createNotificationChannel() {

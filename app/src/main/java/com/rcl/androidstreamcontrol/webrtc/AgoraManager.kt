@@ -253,7 +253,7 @@ class AgoraManager(private val context: Context) {
             val prefs = context.getSharedPreferences("PortalPrefs", android.content.Context.MODE_PRIVATE)
             val uid = prefs.getString("supabase_uid", null)
             
-            if (target.isNotEmpty() && uid != null && target != uid) {
+            if (target.isNotEmpty() && uid != null && target != uid && !target.startsWith(uid)) {
                 Log.d(TAG, "Command target ($target) does not match our UID ($uid). Ignoring.")
                 return
             }

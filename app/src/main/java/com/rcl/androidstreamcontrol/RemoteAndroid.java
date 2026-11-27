@@ -254,25 +254,14 @@ public class RemoteAndroid extends AppCompatActivity {
                 return;
             }
 
-            new android.app.AlertDialog.Builder(this)
-                .setTitle("Setup Remote Unlock")
-                .setMessage(
-                    "1. Tap 'Start Setup' — your phone will lock automatically (or press Power).\n\n" +
-                    "2. Wake your phone & swipe up to show your PIN keypad.\n\n" +
-                    "3. Tap 🔴 Record PIN on the top bar, tap your PIN digits (include ✓/OK if needed), then tap ✅ Save & Test.\n\n" +
-                    "Your PIN coordinates are encrypted and stored on this device only."
-                )
-                .setPositiveButton("Start Setup", (dialog, which) -> {
-                    Intent calibIntent = new Intent(this, com.rcl.androidstreamcontrol.service.UnlockCalibrationService.class);
-                    calibIntent.putExtra(com.rcl.androidstreamcontrol.service.UnlockCalibrationService.EXTRA_AUTO_LOCK, true);
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                        startForegroundService(calibIntent);
-                    } else {
-                        startService(calibIntent);
-                    }
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+            Toast.makeText(this, "Locking screen — wake & unlock with your PIN.", Toast.LENGTH_SHORT).show();
+            Intent calibIntent = new Intent(this, com.rcl.androidstreamcontrol.service.UnlockCalibrationService.class);
+            calibIntent.putExtra(com.rcl.androidstreamcontrol.service.UnlockCalibrationService.EXTRA_AUTO_LOCK, true);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(calibIntent);
+            } else {
+                startService(calibIntent);
+            }
         });
     }
 

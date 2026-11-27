@@ -5,8 +5,10 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -16,8 +18,10 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -37,26 +41,32 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 
 /**
- * Two-phase lockscreen PIN calibration overlay:
+ * 1-Click Autonomous Lockscreen PIN Calibration Service (v61).
  *
- * Phase A (Ready / Top-Bar Only):
- *   Shows only a compact top floating bar (height = WRAP_CONTENT) so the rest of the
- *   screen is 100% pass-through. The user can lock the screen, wake it, and swipe up
- *   naturally to expose the PIN keypad without any touch interception.
- *
- * Phase B (Recording Over Visible Keypad):
- *   When the user taps "Record PIN" (while Keyguard is locked and keypad is visible),
- *   the translucent capture canvas expands below the top bar, records exact raw screen
- *   coordinates on ACTION_DOWN, and draws numbered glowing markers for visual confirmation.
- *   Tapping "Save & Test" immediately removes the overlay, persists encrypted coordinates,
- *   and test-replays the taps onto the still-visible keypad to unlock the phone.
+ * Flow:
+ * 1. LOCKING: Immediately locks the screen via ControlService (GLOBAL_ACTION_LOCK_SCREEN).
+ * 2. LOCKED_ASLEEP: Waits for user to wake the phone (ACTION_SCREEN_ON).
+ * 3. AUTO_SWIPING: Automatically swipes up ~450ms after wake to reveal the PIN keypad.
+ * 4. CAPTURING: Expands a zero-loss buffered capture overlay over the keypad.
+ *    - Manual drags (>24dp) are classified as swipes, forwarded without recording.
+ *    - Digit taps (<=24dp) are buffered at full typing speed with haptic + dot feedback.
+ * 5. VERIFYING: 1.3s after the last tap (when >= 4 taps captured), removes the overlay
+ *    and replays all captured taps onto the open PIN pad.
+ * 6. Proof: Listens for ACTION_USER_PRESENT. Saves coordinates ONLY if unlocked via replay.
+ *    Safely aborts after max 2 verification attempts so lockouts cannot occur.
  */
 public class UnlockCalibrationService extends Service {
 
     private static final String TAG = "UnlockCalibration";
     public static final String EXTRA_AUTO_LOCK = "auto_lock";
     public static final String ACTION_CALIBRATION_UPDATED = "com.rcl.androidstreamcontrol.CALIBRATION_UPDATED";
+
+    private static final int MIN_PIN_DIGITS = 4;
     private static final int MAX_DIGITS = 20;
+    private static final int MAX_ATTEMPTS = 2;
+    private static final long IDLE_SUBMIT_DELAY_MS = 1300L;
+    private static final long VERIFY_TIMEOUT_MS = 4000L;
+    private static final float SWIPE_THRESHOLD_DP = 24f;
 
     private static final int BASE_OVERLAY_FLAGS =
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
@@ -64,43 +74,91 @@ public class UnlockCalibrationService extends Service {
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
 
+    private enum State {
+        IDLE,
+        LOCKING,
+        LOCKED_ASLEEP,
+        AUTO_SWIPING,
+        CAPTURING,
+        VERIFYING,
+        DONE
+    }
+
+    private State state = State.IDLE;
+    private int attemptCount = 0;
+
     private WindowManager windowManager;
     private WindowManager.LayoutParams overlayParams;
     private View overlayView;
     private TextView statusText;
-    private TextView btnLockNow;
-    private TextView btnStartRecording;
-    private TextView btnClear;
-    private TextView btnSaveTest;
+    private TextView dotsText;
     private TapCaptureCanvasView captureCanvas;
 
     private final ArrayList<float[]> capturedCoords = new ArrayList<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private boolean isFinished = false;
-    private boolean isRecording = false;
+    private boolean receiverRegistered = false;
+
+    private final Runnable autoSubmitRunnable = this::triggerVerifyUnlock;
+    private final Runnable verifyTimeoutRunnable = this::onVerifyTimeout;
+    private final Runnable screenOnSequenceRunnable = this::runAutoSwipeAndCapture;
+
+    private final BroadcastReceiver screenStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null || intent.getAction() == null) return;
+            String action = intent.getAction();
+            Log.d(TAG, "System broadcast received: " + action + " (state=" + state + ")");
+
+            if (Intent.ACTION_SCREEN_OFF.equals(action)) {
+                mainHandler.post(() -> handleScreenOff());
+            } else if (Intent.ACTION_SCREEN_ON.equals(action)) {
+                mainHandler.post(() -> handleScreenOn());
+            } else if (Intent.ACTION_USER_PRESENT.equals(action)) {
+                mainHandler.post(() -> handleUserPresent());
+            }
+        }
+    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "Calibration service started.");
+        Log.d(TAG, "Autonomous calibration service started.");
         startForeground(9876, buildNotification());
+        registerScreenReceiver();
 
-        final boolean autoLock = intent != null && intent.getBooleanExtra(EXTRA_AUTO_LOCK, false);
+        final boolean autoLock = intent == null || intent.getBooleanExtra(EXTRA_AUTO_LOCK, true);
 
         mainHandler.post(() -> {
-            isFinished = false;
-            isRecording = false;
+            cancelAllTimers();
+            removeOverlayImmediate();
             capturedCoords.clear();
-            showOverlay();
+            attemptCount = 0;
 
+            KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (km != null && km.isKeyguardLocked()) {
+                // Already locked (e.g. triggered remotely via CALIBRATION_START)
+                state = State.LOCKED_ASLEEP;
+                if (pm == null || pm.isInteractive()) {
+                    handleScreenOn();
+                }
+                return;
+            }
+
+            state = State.LOCKING;
             if (autoLock) {
                 mainHandler.postDelayed(() -> {
+                    if (state != State.LOCKING) return;
                     ControlService cs = ControlService.getSharedInstance();
-                    if (cs != null && !cs.lockDeviceScreen()) {
+                    if (cs == null || !cs.lockDeviceScreen()) {
                         Toast.makeText(getApplicationContext(),
-                                "Press your Power button to lock the screen.",
+                                "Press Power button to lock screen, then unlock with your PIN.",
                                 Toast.LENGTH_LONG).show();
                     }
-                }, 350);
+                }, 250);
+            } else {
+                Toast.makeText(getApplicationContext(),
+                        "Lock your phone now, then unlock with your PIN.",
+                        Toast.LENGTH_LONG).show();
             }
         });
 
@@ -114,40 +172,112 @@ public class UnlockCalibrationService extends Service {
 
     @Override
     public void onDestroy() {
+        cancelAllTimers();
         removeOverlayImmediate();
+        unregisterScreenReceiver();
         super.onDestroy();
     }
 
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
-    }
+    private void registerScreenReceiver() {
+        if (receiverRegistered) return;
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_OFF);
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        filter.addAction(Intent.ACTION_USER_PRESENT);
 
-    private int getStatusBarHeight() {
-        int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resId > 0) {
-            return getResources().getDimensionPixelSize(resId);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(screenStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(screenStateReceiver, filter);
         }
-        return dp(28);
+        receiverRegistered = true;
     }
 
-    private TextView makePillButton(Context ctx, String text, int bgColor) {
-        TextView btn = new TextView(ctx);
-        btn.setText(text);
-        btn.setTextColor(Color.WHITE);
-        btn.setTextSize(13f);
-        btn.setGravity(Gravity.CENTER);
-        btn.setPadding(dp(12), dp(9), dp(12), dp(9));
-        btn.setClickable(true);
-        btn.setFocusable(false);
-
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(bgColor);
-        bg.setCornerRadius(dp(10));
-        btn.setBackground(bg);
-        return btn;
+    private void unregisterScreenReceiver() {
+        if (!receiverRegistered) return;
+        try {
+            unregisterReceiver(screenStateReceiver);
+        } catch (Exception ignored) {
+        }
+        receiverRegistered = false;
     }
 
-    private void showOverlay() {
+    private void cancelAllTimers() {
+        mainHandler.removeCallbacks(autoSubmitRunnable);
+        mainHandler.removeCallbacks(verifyTimeoutRunnable);
+        mainHandler.removeCallbacks(screenOnSequenceRunnable);
+        mainHandler.removeCallbacksAndMessages(null);
+    }
+
+    private void handleScreenOff() {
+        if (state == State.DONE || state == State.IDLE) return;
+        mainHandler.removeCallbacks(autoSubmitRunnable);
+        mainHandler.removeCallbacks(screenOnSequenceRunnable);
+
+        if (state != State.VERIFYING) {
+            capturedCoords.clear();
+            state = State.LOCKED_ASLEEP;
+            removeOverlayImmediate();
+            Log.d(TAG, "Screen locked/off — waiting for user to wake phone.");
+        }
+    }
+
+    private void handleScreenOn() {
+        if (state == State.DONE || state == State.IDLE || state == State.VERIFYING) return;
+
+        KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+        if (km != null && !km.isKeyguardLocked()) {
+            Log.w(TAG, "Screen woke unlocked (no PIN lock configured or Smart Lock active).");
+            Toast.makeText(getApplicationContext(),
+                    "No lockscreen PIN active — enable a PIN lock in Settings to calibrate.",
+                    Toast.LENGTH_LONG).show();
+            shutdownCleanly();
+            return;
+        }
+
+        if (state == State.LOCKING || state == State.LOCKED_ASLEEP) {
+            state = State.AUTO_SWIPING;
+            capturedCoords.clear();
+            mainHandler.removeCallbacks(screenOnSequenceRunnable);
+            // Wait 450ms for Keyguard surface to finish rendering before auto-swiping
+            mainHandler.postDelayed(screenOnSequenceRunnable, 450);
+        }
+    }
+
+    private void runAutoSwipeAndCapture() {
+        if (state != State.AUTO_SWIPING) return;
+
+        KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+        if (km != null && !km.isKeyguardLocked()) {
+            handleUserPresent();
+            return;
+        }
+
+        ControlService cs = ControlService.getSharedInstance();
+        if (cs != null) {
+            DisplayMetrics dm = getResources().getDisplayMetrics();
+            float startX = dm.widthPixels * 0.5f;
+            float startY = dm.heightPixels * 0.80f;
+            float endX = dm.widthPixels * 0.5f;
+            float endY = dm.heightPixels * 0.25f;
+            cs.performSwipe(startX, startY, endX, endY, 260);
+            Log.d(TAG, "Dispatched auto-swipe to reveal PIN keypad.");
+        }
+
+        // Wait 550ms for PIN keypad transition animation before enabling capture
+        mainHandler.postDelayed(() -> {
+            if (state != State.AUTO_SWIPING) return;
+            KeyguardManager kmAfter = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            if (kmAfter != null && !kmAfter.isKeyguardLocked()) {
+                handleUserPresent();
+                return;
+            }
+            state = State.CAPTURING;
+            showCaptureOverlay("🔑 Tap your PIN normally (include ✓/OK if needed)");
+        }, 550);
+    }
+
+    private void showCaptureOverlay(String headerMessage) {
         removeOverlayImmediate();
 
         try {
@@ -158,210 +288,253 @@ public class UnlockCalibrationService extends Service {
                 uiCtx = cs;
                 windowManager = (WindowManager) cs.getSystemService(WINDOW_SERVICE);
                 windowType = WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY;
-                Log.d(TAG, "Using TYPE_ACCESSIBILITY_OVERLAY via ControlService");
             } else {
                 uiCtx = this;
                 windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
                 windowType = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                         ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                         : WindowManager.LayoutParams.TYPE_PHONE;
-                Log.d(TAG, "Using TYPE_APPLICATION_OVERLAY fallback");
             }
 
             LinearLayout root = new LinearLayout(uiCtx);
             root.setOrientation(LinearLayout.VERTICAL);
 
-            // Compact top control card (sits cleanly below status bar, never covers PIN keypad)
             LinearLayout topBar = new LinearLayout(uiCtx);
             topBar.setOrientation(LinearLayout.VERTICAL);
             topBar.setBackgroundColor(Color.argb(235, 16, 18, 30));
-            topBar.setPadding(dp(14), getStatusBarHeight() + dp(8), dp(14), dp(12));
+            topBar.setPadding(dp(14), getStatusBarHeight() + dp(8), dp(14), dp(10));
 
             statusText = new TextView(uiCtx);
             statusText.setTextColor(Color.WHITE);
-            statusText.setTextSize(14f);
+            statusText.setTextSize(13.5f);
             statusText.setGravity(Gravity.CENTER);
-            statusText.setText("🔑 Step 1: Lock phone & swipe up to show your PIN keypad.\nThen tap 🔴 Record PIN below.");
+            statusText.setText(headerMessage);
             topBar.addView(statusText, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-            LinearLayout buttonRow = new LinearLayout(uiCtx);
-            buttonRow.setOrientation(LinearLayout.HORIZONTAL);
-            buttonRow.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+            LinearLayout bottomBarRow = new LinearLayout(uiCtx);
+            bottomBarRow.setOrientation(LinearLayout.HORIZONTAL);
+            bottomBarRow.setGravity(Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            rowParams.topMargin = dp(10);
+            rowLp.topMargin = dp(8);
 
-            btnLockNow = makePillButton(uiCtx, "🔒 Lock", Color.parseColor("#37474F"));
-            btnStartRecording = makePillButton(uiCtx, "🔴 Record PIN", Color.parseColor("#0288D1"));
-            btnClear = makePillButton(uiCtx, "🔄 Clear", Color.parseColor("#455A64"));
-            btnSaveTest = makePillButton(uiCtx, "✅ Save & Test", Color.parseColor("#2E7D32"));
-            TextView btnCancel = makePillButton(uiCtx, "✖ Cancel", Color.parseColor("#B71C1C"));
+            dotsText = new TextView(uiCtx);
+            dotsText.setTextColor(Color.parseColor("#00E5FF"));
+            dotsText.setTextSize(15f);
+            dotsText.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            dotsText.setText("○ ○ ○ ○   Auto-unlocks 1.3s after last tap");
+            bottomBarRow.addView(dotsText, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            LinearLayout.LayoutParams itemLp = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-            itemLp.setMargins(dp(4), 0, dp(4), 0);
+            TextView btnClear = makePillButton(uiCtx, "🔄", Color.parseColor("#455A64"));
+            TextView btnCancel = makePillButton(uiCtx, "✖", Color.parseColor("#B71C1C"));
 
-            // Phase A buttons initially visible
-            boolean canAutoLock = (cs != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P);
-            btnLockNow.setVisibility(canAutoLock ? View.VISIBLE : View.GONE);
-            btnStartRecording.setVisibility(View.VISIBLE);
-            btnClear.setVisibility(View.GONE);
-            btnSaveTest.setVisibility(View.GONE);
+            LinearLayout.LayoutParams smallBtnLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            smallBtnLp.setMargins(dp(6), 0, 0, 0);
 
-            buttonRow.addView(btnLockNow, itemLp);
-            buttonRow.addView(btnStartRecording, itemLp);
-            buttonRow.addView(btnClear, itemLp);
-            buttonRow.addView(btnSaveTest, itemLp);
-            buttonRow.addView(btnCancel, itemLp);
-            topBar.addView(buttonRow, rowParams);
+            bottomBarRow.addView(btnClear, smallBtnLp);
+            bottomBarRow.addView(btnCancel, smallBtnLp);
+            topBar.addView(bottomBarRow, rowLp);
 
             captureCanvas = new TapCaptureCanvasView(uiCtx);
-            captureCanvas.setVisibility(View.GONE);
 
             root.addView(topBar, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
             root.addView(captureCanvas, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
 
-            btnLockNow.setOnClickListener(v -> {
-                ControlService activeCs = ControlService.getSharedInstance();
-                if (activeCs != null) {
-                    activeCs.lockDeviceScreen();
-                }
-            });
-
-            btnStartRecording.setOnClickListener(v -> enterRecordingPhase());
-
             btnClear.setOnClickListener(v -> {
+                mainHandler.removeCallbacks(autoSubmitRunnable);
                 capturedCoords.clear();
                 captureCanvas.clearDots();
-                updateRecordingStatus();
-                Toast.makeText(getApplicationContext(), "Cleared. Tap your PIN digits again.", Toast.LENGTH_SHORT).show();
+                updateDotsDisplay();
             });
 
-            btnSaveTest.setOnClickListener(v -> {
-                if (capturedCoords.isEmpty()) {
-                    Toast.makeText(getApplicationContext(), "Tap your PIN digits on the keypad first.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                finishAndTestCalibration();
+            btnCancel.setOnClickListener(v -> {
+                Toast.makeText(getApplicationContext(), "Remote unlock setup cancelled.", Toast.LENGTH_SHORT).show();
+                shutdownCleanly();
             });
-
-            btnCancel.setOnClickListener(v -> cancelCalibration());
 
             overlayView = root;
             overlayParams = new WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.MATCH_PARENT,
                     windowType,
-                    BASE_OVERLAY_FLAGS | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                    BASE_OVERLAY_FLAGS,
                     PixelFormat.TRANSLUCENT);
             overlayParams.gravity = Gravity.TOP | Gravity.START;
 
             windowManager.addView(overlayView, overlayParams);
-            Log.d(TAG, "Phase A top banner added cleanly.");
+            updateDotsDisplay();
+            Log.d(TAG, "Autonomous capture overlay attached over keypad.");
         } catch (Exception e) {
-            Log.e(TAG, "Failed to add calibration overlay", e);
-            stopSelfCleanly();
+            Log.e(TAG, "Failed attaching capture overlay", e);
+            shutdownCleanly();
         }
     }
 
-    private void enterRecordingPhase() {
-        if (isFinished || isRecording) return;
+    private void updateDotsDisplay() {
+        if (dotsText == null) return;
+        int count = capturedCoords.size();
+        if (count == 0) {
+            dotsText.setText("○ ○ ○ ○   Tap PIN digits below");
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        int totalSlots = Math.max(MIN_PIN_DIGITS, count);
+        for (int i = 0; i < totalSlots; i++) {
+            sb.append(i < count ? "● " : "○ ");
+        }
+        if (count >= MIN_PIN_DIGITS) {
+            sb.append("  Verifying in 1.3s...");
+        } else {
+            sb.append("  (").append(count).append(")");
+        }
+        dotsText.setText(sb.toString());
+    }
 
+    private void triggerVerifyUnlock() {
+        if (state != State.CAPTURING || capturedCoords.size() < MIN_PIN_DIGITS) return;
+
+        state = State.VERIFYING;
+        attemptCount++;
+        Log.d(TAG, "Idle submit triggered (attempt " + attemptCount + "). Replaying " + capturedCoords.size() + " taps.");
+
+        // Detach overlay completely before replaying taps onto Keyguard
+        removeOverlayImmediate();
+
+        final Context appCtx = getApplicationContext();
+        final JSONArray pinSequence = buildPinJsonArray();
+
+        mainHandler.postDelayed(() -> {
+            if (state != State.VERIFYING) return;
+            // Replay directly via ControlService without saving yet — save only after ACTION_USER_PRESENT proves unlock!
+            replayCapturedTapsDirectly(pinSequence);
+            long dynamicTimeoutMs = (pinSequence.length() * 300L) + 3000L;
+            mainHandler.postDelayed(verifyTimeoutRunnable, Math.max(VERIFY_TIMEOUT_MS, dynamicTimeoutMs));
+        }, 180);
+    }
+
+    private void replayCapturedTapsDirectly(JSONArray pinSequence) {
+        final long tapCadenceMs = 300L;
+        for (int i = 0; i < pinSequence.length(); i++) {
+            final int index = i;
+            mainHandler.postDelayed(() -> {
+                if (state != State.VERIFYING) return;
+                try {
+                    JSONObject entry = pinSequence.getJSONObject(index);
+                    float absX = (float) entry.getDouble("x");
+                    float absY = (float) entry.getDouble("y");
+                    ControlService cs = ControlService.getSharedInstance();
+                    if (cs != null) {
+                        cs.performAbsoluteTap(absX, absY);
+                        Log.d(TAG, "Verify tap " + (index + 1) + " at (" + absX + ", " + absY + ")");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error replaying verify tap " + index, e);
+                }
+            }, index * tapCadenceMs);
+        }
+    }
+
+    private void onVerifyTimeout() {
+        if (state != State.VERIFYING) return;
+
+        // Double check Keyguard directly in case broadcast was delayed
         KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
         if (km != null && !km.isKeyguardLocked()) {
-            Toast.makeText(getApplicationContext(),
-                    "Please lock your phone first and swipe up to show your PIN keypad!",
-                    Toast.LENGTH_LONG).show();
+            handleUserPresent();
             return;
         }
 
-        isRecording = true;
+        Log.w(TAG, "Verify timeout: phone stayed locked on attempt " + attemptCount);
         capturedCoords.clear();
-        captureCanvas.clearDots();
 
-        btnLockNow.setVisibility(View.GONE);
-        btnStartRecording.setVisibility(View.GONE);
-        btnClear.setVisibility(View.VISIBLE);
-        btnSaveTest.setVisibility(View.VISIBLE);
-        captureCanvas.setVisibility(View.VISIBLE);
-        updateRecordingStatus();
-
-        if (overlayView != null && windowManager != null && overlayParams != null) {
-            overlayParams.height = WindowManager.LayoutParams.MATCH_PARENT;
-            overlayParams.flags = BASE_OVERLAY_FLAGS;
-            try {
-                windowManager.updateViewLayout(overlayView, overlayParams);
-                Log.d(TAG, "Expanded to Phase B full capture mode.");
-            } catch (Exception e) {
-                Log.e(TAG, "Failed expanding overlay to Phase B", e);
-            }
+        if (attemptCount < MAX_ATTEMPTS) {
+            state = State.CAPTURING;
+            showCaptureOverlay("❌ Didn't unlock (include ✓/OK if needed). Try PIN again (" + attemptCount + "/" + MAX_ATTEMPTS + ")");
+        } else {
+            Toast.makeText(getApplicationContext(),
+                    "Setup paused after 2 attempts to protect your lockscreen.",
+                    Toast.LENGTH_LONG).show();
+            shutdownCleanly();
         }
     }
 
-    private void updateRecordingStatus() {
-        if (statusText != null && !isFinished) {
-            statusText.setText("🔴 Tap each PIN digit on keypad (include ✓/OK if needed).\n"
-                    + capturedCoords.size() + " tap(s) recorded.");
+    private void handleUserPresent() {
+        if (state == State.DONE || state == State.IDLE) return;
+
+        if (state == State.VERIFYING && capturedCoords.size() >= MIN_PIN_DIGITS) {
+            state = State.DONE;
+            mainHandler.removeCallbacks(verifyTimeoutRunnable);
+
+            final Context appCtx = getApplicationContext();
+            JSONArray pinSequence = buildPinJsonArray();
+            UnlockCoordinateStore.saveCoordinates(appCtx, pinSequence);
+
+            Intent updateIntent = new Intent(ACTION_CALIBRATION_UPDATED);
+            updateIntent.setPackage(appCtx.getPackageName());
+            appCtx.sendBroadcast(updateIntent);
+
+            Toast.makeText(appCtx,
+                    "✅ Remote Unlock calibrated & verified (" + capturedCoords.size() + " taps)!",
+                    Toast.LENGTH_LONG).show();
+            Log.d(TAG, "Calibration verified via ACTION_USER_PRESENT and saved (" + capturedCoords.size() + " taps).");
+            shutdownCleanly();
+        } else {
+            // Unlocked via Fingerprint / Face Unlock / Smart Lock before buffered verification ran
+            Log.w(TAG, "Phone unlocked externally (biometrics/manual) in state " + state + " with " + capturedCoords.size() + " taps.");
+            Toast.makeText(getApplicationContext(),
+                    "Unlocked via biometrics/manual — tap Setup again & unlock with your PIN digits.",
+                    Toast.LENGTH_LONG).show();
+            shutdownCleanly();
         }
     }
 
-    private void finishAndTestCalibration() {
-        if (isFinished) return;
-        isFinished = true;
-
-        final Context appCtx = getApplicationContext();
-        JSONArray pinSequence = new JSONArray();
+    private JSONArray buildPinJsonArray() {
+        JSONArray arr = new JSONArray();
         for (int i = 0; i < capturedCoords.size(); i++) {
             float[] coord = capturedCoords.get(i);
             try {
-                JSONObject entry = new JSONObject();
-                entry.put("digit", i);
-                entry.put("x", coord[0]);
-                entry.put("y", coord[1]);
-                pinSequence.put(entry);
+                JSONObject obj = new JSONObject();
+                obj.put("digit", i);
+                obj.put("x", coord[0]);
+                obj.put("y", coord[1]);
+                arr.put(obj);
             } catch (Exception e) {
                 Log.e(TAG, "JSON error", e);
             }
         }
-
-        UnlockCoordinateStore.saveCoordinates(appCtx, pinSequence);
-        Log.d(TAG, "Calibration saved: " + capturedCoords.size() + " tap coordinates.");
-
-        Intent updateIntent = new Intent(ACTION_CALIBRATION_UPDATED);
-        updateIntent.setPackage(appCtx.getPackageName());
-        appCtx.sendBroadcast(updateIntent);
-
-        // Remove overlay immediately BEFORE replaying test taps onto the real keypad
-        removeOverlayImmediate();
-        Toast.makeText(appCtx,
-                "✅ Saved " + capturedCoords.size() + " taps! Testing unlock now...",
-                Toast.LENGTH_SHORT).show();
-
-        stopSelfCleanly();
-
-        // Wait briefly for window removal to settle, then tap the saved coordinates on the open keypad
-        new Handler(Looper.getMainLooper()).postDelayed(() ->
-                RemoteUnlockExecutor.executePinTapsOnly(appCtx, null), 350);
+        return arr;
     }
 
-    private void cancelCalibration() {
-        if (isFinished) return;
-        isFinished = true;
-        removeOverlayImmediate();
-        Toast.makeText(getApplicationContext(), "Remote unlock setup cancelled.", Toast.LENGTH_SHORT).show();
-        stopSelfCleanly();
+    private void setOverlayTouchable(boolean touchable) {
+        if (overlayView == null || windowManager == null || overlayParams == null) return;
+        if (touchable) {
+            overlayParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        } else {
+            overlayParams.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        }
+        try {
+            windowManager.updateViewLayout(overlayView, overlayParams);
+        } catch (Exception e) {
+            Log.e(TAG, "updateViewLayout failed", e);
+        }
     }
 
-    private void stopSelfCleanly() {
+    private void shutdownCleanly() {
+        state = State.DONE;
+        cancelAllTimers();
+        removeOverlayImmediate();
+        unregisterScreenReceiver();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE);
         } else {
             @SuppressWarnings("deprecation")
-            boolean removed = true;
-            stopForeground(removed);
+            boolean remove = true;
+            stopForeground(remove);
         }
         stopSelf();
     }
@@ -376,12 +549,36 @@ public class UnlockCalibrationService extends Service {
             } catch (Exception e) {
                 try {
                     windowManager.removeView(viewToRemove);
-                    Log.d(TAG, "Overlay removed via fallback removeView.");
-                } catch (Exception e2) {
-                    Log.e(TAG, "Error removing overlay", e2);
+                } catch (Exception ignored) {
                 }
             }
         }
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private int getStatusBarHeight() {
+        int resId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        return resId > 0 ? getResources().getDimensionPixelSize(resId) : dp(28);
+    }
+
+    private TextView makePillButton(Context ctx, String text, int bgColor) {
+        TextView btn = new TextView(ctx);
+        btn.setText(text);
+        btn.setTextColor(Color.WHITE);
+        btn.setTextSize(13f);
+        btn.setGravity(Gravity.CENTER);
+        btn.setPadding(dp(12), dp(7), dp(12), dp(7));
+        btn.setClickable(true);
+        btn.setFocusable(false);
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(bgColor);
+        bg.setCornerRadius(dp(9));
+        btn.setBackground(bg);
+        return btn;
     }
 
     private Notification buildNotification() {
@@ -396,15 +593,16 @@ public class UnlockCalibrationService extends Service {
         }
         return new NotificationCompat.Builder(this, channelId)
                 .setSmallIcon(R.drawable.ic_appstate)
-                .setContentTitle("Remote Unlock Setup")
-                .setContentText("Open your PIN keypad and tap Record PIN to calibrate.")
+                .setContentTitle("Autonomous Unlock Setup")
+                .setContentText("Unlock your phone with your PIN to complete setup.")
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .build();
     }
 
     /**
-     * Translucent capture surface shown below the top control bar in Phase B.
-     * Records raw screen coordinates for dispatchGesture and renders numbered dots at local coordinates.
+     * Zero-loss buffered capture canvas.
+     * Classifies drags (>24dp) as manual swipes and forwards them via ControlService,
+     * while buffering stationary taps cleanly at full typing cadence.
      */
     private class TapCaptureCanvasView extends View {
         private final ArrayList<float[]> localDots = new ArrayList<>();
@@ -412,10 +610,14 @@ public class UnlockCalibrationService extends Service {
         private final Paint ringPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
+        private float downRawX, downRawY, downLocalX, downLocalY;
+        private long downTimeMs;
+        private boolean isForwardingSwipe = false;
+
         TapCaptureCanvasView(Context context) {
             super(context);
-            // Non-zero opacity satisfies Android 12+ tapjacking protections while leaving keypad clearly visible
-            setBackgroundColor(Color.argb(24, 0, 229, 255));
+            // Non-zero opacity passes Android 12+ untrusted-touch filter while leaving keypad clearly visible
+            setBackgroundColor(Color.argb(20, 0, 229, 255));
 
             fillPaint.setColor(Color.argb(120, 0, 180, 216));
             fillPaint.setStyle(Paint.Style.FILL);
@@ -437,25 +639,67 @@ public class UnlockCalibrationService extends Service {
 
         @Override
         public boolean onTouchEvent(MotionEvent event) {
-            if (isFinished || !isRecording) return false;
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                if (capturedCoords.size() >= MAX_DIGITS) {
-                    Toast.makeText(getContext(), "Maximum digits reached (" + MAX_DIGITS + "). Tap Save & Test.", Toast.LENGTH_SHORT).show();
+            if (state != State.CAPTURING || isForwardingSwipe) return false;
+
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                mainHandler.removeCallbacks(autoSubmitRunnable);
+                downRawX = event.getRawX();
+                downRawY = event.getRawY();
+                downLocalX = event.getX();
+                downLocalY = event.getY();
+                downTimeMs = System.currentTimeMillis();
+                return true;
+            } else if (action == MotionEvent.ACTION_MOVE) {
+                return true;
+            } else if (action == MotionEvent.ACTION_UP) {
+                float upRawX = event.getRawX();
+                float upRawY = event.getRawY();
+                float distPx = (float) Math.hypot(upRawX - downRawX, upRawY - downRawY);
+                float swipeThresholdPx = SWIPE_THRESHOLD_DP * getResources().getDisplayMetrics().density;
+
+                if (distPx > swipeThresholdPx) {
+                    // User performed a swipe (not a digit tap) — forward swipe to lockscreen and discard!
+                    final long swipeDuration = Math.max(120L, Math.min(400L, System.currentTimeMillis() - downTimeMs));
+                    Log.d(TAG, "Swipe detected (dist=" + distPx + "px) — forwarding without recording.");
+                    isForwardingSwipe = true;
+                    setOverlayTouchable(false);
+                    mainHandler.postDelayed(() -> {
+                        ControlService cs = ControlService.getSharedInstance();
+                        if (cs != null) {
+                            cs.performSwipe(downRawX, downRawY, upRawX, upRawY, swipeDuration);
+                        }
+                        mainHandler.postDelayed(() -> {
+                            isForwardingSwipe = false;
+                            if (state == State.CAPTURING) {
+                                setOverlayTouchable(true);
+                            }
+                        }, swipeDuration + 180L);
+                    }, 35L);
                     return true;
                 }
-                float rawX = event.getRawX();
-                float rawY = event.getRawY();
-                float localX = event.getX();
-                float localY = event.getY();
 
-                capturedCoords.add(new float[]{rawX, rawY});
-                localDots.add(new float[]{localX, localY});
+                // Stationary tap — record coordinate with zero drop!
+                if (capturedCoords.size() >= MAX_DIGITS) {
+                    triggerVerifyUnlock();
+                    return true;
+                }
+
+                performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+                capturedCoords.add(new float[]{downRawX, downRawY});
+                localDots.add(new float[]{downLocalX, downLocalY});
                 invalidate();
-                updateRecordingStatus();
-                Log.d(TAG, "Captured tap #" + capturedCoords.size() + ": raw=(" + rawX + ", " + rawY + ")");
+                updateDotsDisplay();
+                Log.d(TAG, "Buffered tap #" + capturedCoords.size() + ": raw=(" + downRawX + ", " + downRawY + ")");
+
+                if (capturedCoords.size() >= MAX_DIGITS) {
+                    triggerVerifyUnlock();
+                } else if (capturedCoords.size() >= MIN_PIN_DIGITS) {
+                    mainHandler.postDelayed(autoSubmitRunnable, IDLE_SUBMIT_DELAY_MS);
+                }
                 return true;
             }
-            return event.getActionMasked() == MotionEvent.ACTION_MOVE || event.getActionMasked() == MotionEvent.ACTION_UP;
+            return false;
         }
 
         @Override

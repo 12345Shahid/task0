@@ -1079,6 +1079,20 @@ if (AgoraManager.isWebRTCActive && (System.currentTimeMillis() - lastAtsTime > 1
         dispatchGesture(gesture, null, null);
     }
 
+    /**
+     * Locks the device screen on Android 9 (API 28)+ via Accessibility global action.
+     * @return true if the global lock action was dispatched.
+     */
+    public boolean lockDeviceScreen() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            lastAtsTime = System.currentTimeMillis();
+            boolean result = performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN);
+            android.util.Log.d(TAG, "GLOBAL_ACTION_LOCK_SCREEN dispatched: " + result);
+            return result;
+        }
+        return false;
+    }
+
     public void performRemoteTap(float x, float y) {
         lastAtsTime = System.currentTimeMillis();
         android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();

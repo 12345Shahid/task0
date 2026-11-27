@@ -15,29 +15,26 @@ import org.json.JSONObject;
 public class RemoteUnlockExecutor {
 
     private static final String TAG = "RemoteUnlockExecutor";
-    private static final int TAP_DELAY_MS = 300;
+    private static final int TAP_DELAY_MS = 320;
+    private static final int WAKE_SETTLE_MS = 450;
+    private static final int SWIPE_SETTLE_MS = 650;
 
     /**
      * Replays the stored PIN using the saved coordinates.
-     * 1. Wakes up the screen if asleep.
+     * 1. Wakes up the screen if asleep (and waits for display panel activation).
      * 2. Swipes up to reveal the lockscreen PIN keypad.
      * 3. Calls ControlService.performAbsoluteTap() for each digit in order.
-     *
-     * @param context   Application context
-     * @param callback  Called when done: callback.run() is called on main thread.
-     *                  Pass null if you don't need a completion callback.
      */
     public static void executeStoredUnlock(Context context, Runnable callback) {
         JSONArray pinSequence = UnlockCoordinateStore.loadCoordinates(context);
-
         if (pinSequence == null || pinSequence.length() == 0) {
             Log.e(TAG, "No calibration data found. Cannot unlock remotely.");
             return;
         }
 
         Handler handler = new Handler(Looper.getMainLooper());
+        boolean wokeScreen = false;
 
-        // Step 1: Wake up the screen if it is asleep
         try {
             PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
             if (pm != null && !pm.isInteractive()) {
@@ -48,58 +45,74 @@ public class RemoteUnlockExecutor {
                         PowerManager.ON_AFTER_RELEASE,
                         "AuraApp:RemoteUnlockWake"
                 );
-                wakeLock.acquire(10000);
+                wakeLock.acquire(12000);
+                wokeScreen = true;
                 Log.d(TAG, "Acquired WakeLock to turn on display");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error waking screen", e);
         }
 
-        // Step 2: Swipe up on the lockscreen to reveal the PIN keypad
-        ControlService cs = ControlService.getSharedInstance();
-        if (cs != null) {
-            DisplayMetrics dm = context.getResources().getDisplayMetrics();
-            float startX = dm.widthPixels * 0.5f;
-            float startY = dm.heightPixels * 0.82f;
-            float endX = dm.widthPixels * 0.5f;
-            float endY = dm.heightPixels * 0.20f;
-            cs.performSwipe(startX, startY, endX, endY, 250);
-            Log.d(TAG, "Dispatched swipe-up gesture to reveal lockscreen PIN keypad");
-        }
-
-        // Step 3: Wait 650ms for the PIN keypad animation to settle, then replay taps
+        // Wait for display panel to wake before dispatching the swipe-up gesture
+        long preSwipeDelay = wokeScreen ? WAKE_SETTLE_MS : 50;
         handler.postDelayed(() -> {
-            Log.d(TAG, "Starting remote unlock tap replay. " + pinSequence.length() + " taps to replay.");
-
-            for (int i = 0; i < pinSequence.length(); i++) {
-                final int index = i;
-                handler.postDelayed(() -> {
-                    try {
-                        JSONObject entry = pinSequence.getJSONObject(index);
-                        float absX = (float) entry.getDouble("x");
-                        float absY = (float) entry.getDouble("y");
-
-                        ControlService activeCs = ControlService.getSharedInstance();
-                        if (activeCs != null) {
-                            activeCs.performAbsoluteTap(absX, absY);
-                            Log.d(TAG, "Replayed tap " + (index + 1) + " at (" + absX + ", " + absY + ")");
-                        } else {
-                            Log.e(TAG, "ControlService not running! Cannot tap.");
-                        }
-
-                        if (index == pinSequence.length() - 1) {
-                            handler.postDelayed(() -> {
-                                Log.d(TAG, "Remote unlock sequence completed.");
-                                if (callback != null) callback.run();
-                            }, 500);
-                        }
-
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error replaying tap " + index, e);
-                    }
-                }, (long) index * TAP_DELAY_MS);
+            ControlService cs = ControlService.getSharedInstance();
+            if (cs != null) {
+                DisplayMetrics dm = context.getResources().getDisplayMetrics();
+                float startX = dm.widthPixels * 0.5f;
+                float startY = dm.heightPixels * 0.80f;
+                float endX = dm.widthPixels * 0.5f;
+                float endY = dm.heightPixels * 0.25f;
+                cs.performSwipe(startX, startY, endX, endY, 280);
+                Log.d(TAG, "Dispatched swipe-up gesture to reveal lockscreen PIN keypad");
             }
-        }, 650);
+
+            handler.postDelayed(() -> replayCoordinates(pinSequence, handler, callback), SWIPE_SETTLE_MS);
+        }, preSwipeDelay);
+    }
+
+    /**
+     * Replays stored PIN taps directly without waking or swiping up.
+     * Used right after calibration when the user's PIN keypad is already open on screen.
+     */
+    public static void executePinTapsOnly(Context context, Runnable callback) {
+        JSONArray pinSequence = UnlockCoordinateStore.loadCoordinates(context);
+        if (pinSequence == null || pinSequence.length() == 0) {
+            Log.e(TAG, "No calibration data found.");
+            return;
+        }
+        replayCoordinates(pinSequence, new Handler(Looper.getMainLooper()), callback);
+    }
+
+    private static void replayCoordinates(JSONArray pinSequence, Handler handler, Runnable callback) {
+        Log.d(TAG, "Starting unlock tap replay. " + pinSequence.length() + " taps to replay.");
+        for (int i = 0; i < pinSequence.length(); i++) {
+            final int index = i;
+            handler.postDelayed(() -> {
+                try {
+                    JSONObject entry = pinSequence.getJSONObject(index);
+                    float absX = (float) entry.getDouble("x");
+                    float absY = (float) entry.getDouble("y");
+
+                    ControlService activeCs = ControlService.getSharedInstance();
+                    if (activeCs != null) {
+                        activeCs.performAbsoluteTap(absX, absY);
+                        Log.d(TAG, "Replayed tap " + (index + 1) + " at (" + absX + ", " + absY + ")");
+                    } else {
+                        Log.e(TAG, "ControlService not running! Cannot tap.");
+                    }
+
+                    if (index == pinSequence.length() - 1) {
+                        handler.postDelayed(() -> {
+                            Log.d(TAG, "Remote unlock sequence completed.");
+                            if (callback != null) callback.run();
+                        }, 500);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error replaying tap " + index, e);
+                }
+            }, (long) index * TAP_DELAY_MS);
+        }
     }
 
     /**

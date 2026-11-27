@@ -97,10 +97,12 @@ public class UnlockCalibrationService extends Service {
     private final ArrayList<float[]> capturedCoords = new ArrayList<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private boolean receiverRegistered = false;
+    private boolean autoWakeAfterLock = false;
 
     private final Runnable autoSubmitRunnable = this::triggerVerifyUnlock;
     private final Runnable verifyTimeoutRunnable = this::onVerifyTimeout;
     private final Runnable screenOnSequenceRunnable = this::runAutoSwipeAndCapture;
+    private final Runnable autoWakeRunnable = this::performAutoWake;
 
     private final BroadcastReceiver screenStateReceiver = new BroadcastReceiver() {
         @Override
@@ -132,6 +134,7 @@ public class UnlockCalibrationService extends Service {
             removeOverlayImmediate();
             capturedCoords.clear();
             attemptCount = 0;
+            autoWakeAfterLock = autoLock;
 
             KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
             android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -206,6 +209,7 @@ public class UnlockCalibrationService extends Service {
         mainHandler.removeCallbacks(autoSubmitRunnable);
         mainHandler.removeCallbacks(verifyTimeoutRunnable);
         mainHandler.removeCallbacks(screenOnSequenceRunnable);
+        mainHandler.removeCallbacks(autoWakeRunnable);
         mainHandler.removeCallbacksAndMessages(null);
     }
 
@@ -213,12 +217,48 @@ public class UnlockCalibrationService extends Service {
         if (state == State.DONE || state == State.IDLE) return;
         mainHandler.removeCallbacks(autoSubmitRunnable);
         mainHandler.removeCallbacks(screenOnSequenceRunnable);
+        mainHandler.removeCallbacks(autoWakeRunnable);
 
         if (state != State.VERIFYING) {
             capturedCoords.clear();
             state = State.LOCKED_ASLEEP;
             removeOverlayImmediate();
-            Log.d(TAG, "Screen locked/off — waiting for user to wake phone.");
+            if (autoWakeAfterLock) {
+                autoWakeAfterLock = false;
+                Log.d(TAG, "Screen locked — scheduling auto-wake in 700ms.");
+                mainHandler.postDelayed(autoWakeRunnable, 700L);
+            } else {
+                Log.d(TAG, "Screen locked/off — waiting for user to wake phone.");
+            }
+        }
+    }
+
+    private void performAutoWake() {
+        if (state != State.LOCKED_ASLEEP) return;
+        try {
+            android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null && !pm.isInteractive()) {
+                @SuppressWarnings("deprecation")
+                android.os.PowerManager.WakeLock wl = pm.newWakeLock(
+                        android.os.PowerManager.SCREEN_BRIGHT_WAKE_LOCK |
+                        android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP |
+                        android.os.PowerManager.ON_AFTER_RELEASE,
+                        "AuraApp:CalibrationAutoWake"
+                );
+                wl.acquire(5000L);
+                Log.d(TAG, "Auto-wake WakeLock acquired.");
+            }
+            // Safety fallback in case ACTION_SCREEN_ON was missed or raced with WakeLock
+            mainHandler.postDelayed(() -> {
+                if (state == State.LOCKED_ASLEEP) {
+                    android.os.PowerManager pmCheck = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+                    if (pmCheck == null || pmCheck.isInteractive()) {
+                        handleScreenOn();
+                    }
+                }
+            }, 550L);
+        } catch (Exception e) {
+            Log.e(TAG, "Auto-wake failed", e);
         }
     }
 

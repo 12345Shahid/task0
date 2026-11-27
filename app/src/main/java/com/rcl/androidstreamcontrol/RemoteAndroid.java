@@ -254,7 +254,7 @@ public class RemoteAndroid extends AppCompatActivity {
                 return;
             }
 
-            Toast.makeText(this, "Locking screen — wake & unlock with your PIN.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Locking & reopening PIN pad automatically...", Toast.LENGTH_SHORT).show();
             Intent calibIntent = new Intent(this, com.rcl.androidstreamcontrol.service.UnlockCalibrationService.class);
             calibIntent.putExtra(com.rcl.androidstreamcontrol.service.UnlockCalibrationService.EXTRA_AUTO_LOCK, true);
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {

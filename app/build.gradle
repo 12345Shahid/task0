@@ -11,8 +11,8 @@ android {
         applicationId "com.rcl.androidstreamcontrol"
         minSdk 24
         targetSdk 34
-        versionCode 196
-        versionName "62"
+        versionCode 197
+        versionName "63"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

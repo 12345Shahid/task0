@@ -85,12 +85,7 @@ public class FollowerService extends LifecycleService implements ServiceReposito
         heartbeatRunnable = new Runnable() {
             @Override
             public void run() {
-                android.content.SharedPreferences prefs = getSharedPreferences("PortalPrefs", MODE_PRIVATE);
-                String uid = prefs.getString("supabase_uid", null);
-                String token = prefs.getString("supabase_token", null);
-                if (uid != null && token != null && uid.contains("-") && !token.contains("...")) {
-                    com.rcl.androidstreamcontrol.utils.SupabaseClient.updateHeartbeat(uid, token);
-                }
+                com.rcl.androidstreamcontrol.utils.SupabaseClient.ensureDeviceAndHeartbeat(FollowerService.this);
                 if (heartbeatHandler != null) {
                     heartbeatHandler.postDelayed(this, 60000);
                 }
@@ -119,6 +114,9 @@ public class FollowerService extends LifecycleService implements ServiceReposito
 
     @Override
     public void onDestroy() {
+        if (heartbeatHandler != null && heartbeatRunnable != null) {
+            heartbeatHandler.removeCallbacks(heartbeatRunnable);
+        }
         serviceRepo.onUnbind();
         super.onDestroy();
     }

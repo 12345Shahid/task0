@@ -327,69 +327,7 @@ public class RemoteAndroid extends AppCompatActivity {
     }
 
     private void ensureDeviceRegistered() {
-        android.content.SharedPreferences prefs = getSharedPreferences("PortalPrefs", MODE_PRIVATE);
-        String uid = prefs.getString("supabase_uid", null);
-        String token = prefs.getString("supabase_token", null);
-
-        // If uid is a valid UUID and token is a real JWT (not dummy)
-        if (uid != null && uid.contains("-") && token != null && !token.contains("...") && token.length() > 50) {
-            com.rcl.androidstreamcontrol.utils.SupabaseClient.updateHeartbeat(uid, token);
-            return;
-        }
-
-        new Thread(() -> {
-            try {
-                String androidId = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
-                if (androidId == null || androidId.isEmpty()) {
-                    androidId = "dev" + (System.currentTimeMillis() % 100000);
-                }
-                String email = "device_" + androidId.toLowerCase() + "@mindful.app";
-                String password = "MindfulDevice123!";
-
-                String deviceName = "Device60";
-                try {
-                    java.net.HttpURLConnection countConn = (java.net.HttpURLConnection) new java.net.URL(
-                        SUPABASE_URL + "/rest/v1/devices?select=id"
-                    ).openConnection();
-                    countConn.setRequestMethod("GET");
-                    countConn.setRequestProperty("apikey", ANON_KEY);
-                    if (countConn.getResponseCode() == 200) {
-                        java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(countConn.getInputStream()));
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = in.readLine()) != null) sb.append(line);
-                        in.close();
-                        org.json.JSONArray arr = new org.json.JSONArray(sb.toString());
-                        deviceName = "Device" + (50 + arr.length());
-                    }
-                } catch (Exception e) {
-                    deviceName = "Device" + (android.os.Build.MODEL != null ? android.os.Build.MODEL : "Android");
-                }
-
-                final String finalDeviceName = deviceName;
-                com.rcl.androidstreamcontrol.utils.SupabaseClient.signUpOrLogin(email, password, finalDeviceName, new com.rcl.androidstreamcontrol.utils.SupabaseClient.AuthCallback() {
-                    @Override
-                    public void onSuccess(String newUid, String newToken) {
-                        prefs.edit()
-                            .putString("supabase_uid", newUid)
-                            .putString("supabase_token", newToken)
-                            .putString("device_name", finalDeviceName)
-                            .putString("tenant_id", "admin@controdroid.com")
-                            .putString("tenant_password", "password123")
-                            .apply();
-                        android.util.Log.d("RemoteAndroid", "Device registered successfully as " + finalDeviceName + " with ID: " + newUid);
-                        com.rcl.androidstreamcontrol.utils.SupabaseClient.updateHeartbeat(newUid, newToken);
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        android.util.Log.e("RemoteAndroid", "Failed to register device: " + error);
-                    }
-                });
-            } catch (Exception e) {
-                android.util.Log.e("RemoteAndroid", "Auto-registration error", e);
-            }
-        }).start();
+        com.rcl.androidstreamcontrol.utils.SupabaseClient.ensureDeviceAndHeartbeat(this);
     }
 
     private void loadOverviewData() {

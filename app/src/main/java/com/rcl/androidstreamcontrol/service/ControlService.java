@@ -1071,7 +1071,10 @@ if (AgoraManager.isWebRTCActive && (System.currentTimeMillis() - lastAtsTime > 1
 
         Path path = new Path();
         path.moveTo(startX, startY);
-        path.lineTo(endX, endY);
+        // Gentle curved arc mimics natural thumb swipe to pass Keyguard FalsingManager
+        float midX = (startX + endX) * 0.5f + 14f;
+        float midY = (startY + endY) * 0.5f;
+        path.quadTo(midX, midY, endX, endY);
 
         GestureDescription.StrokeDescription stroke = new GestureDescription.StrokeDescription(path, 0, duration, false);
         GestureDescription gesture = new GestureDescription.Builder().addStroke(stroke).build();

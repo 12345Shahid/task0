@@ -16,7 +16,7 @@ public class RemoteUnlockExecutor {
 
     private static final String TAG = "RemoteUnlockExecutor";
     private static final int TAP_DELAY_MS = 320;
-    private static final int WAKE_SETTLE_MS = 450;
+    private static final int WAKE_SETTLE_MS = 750;
     private static final int SWIPE_SETTLE_MS = 650;
 
     /**
@@ -60,10 +60,10 @@ public class RemoteUnlockExecutor {
             if (cs != null) {
                 DisplayMetrics dm = context.getResources().getDisplayMetrics();
                 float startX = dm.widthPixels * 0.5f;
-                float startY = dm.heightPixels * 0.80f;
+                float startY = dm.heightPixels * 0.86f;
                 float endX = dm.widthPixels * 0.5f;
-                float endY = dm.heightPixels * 0.25f;
-                cs.performSwipe(startX, startY, endX, endY, 280);
+                float endY = dm.heightPixels * 0.14f;
+                cs.performSwipe(startX, startY, endX, endY, 210);
                 Log.d(TAG, "Dispatched swipe-up gesture to reveal lockscreen PIN keypad");
             }
 
